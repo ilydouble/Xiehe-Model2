@@ -1,0 +1,95 @@
+# YOLO11 Pose训练配置文件 - Corner数据集
+# 用于脊柱椎体角点检测（18个椎体类别，每个4个关键点）
+
+# 快速实验配置（nano模型，适合快速测试）
+quick_test:
+  model_size: 'n'  # nano
+  epochs: 50
+  batch: 16
+  imgsz: 640
+  pretrained: true
+  name: 'yolo11n_corner_quick_test'
+  data: '../datasets/yolo_corner/data.yaml'
+
+# 标准训练配置（small模型，平衡性能和速度）
+standard:
+  model_size: 's'  # small
+  epochs: 100
+  batch: 16
+  imgsz: 640
+  pretrained: true
+  name: 'yolo11s_corner_standard'
+  data: '../datasets/yolo_corner/data.yaml'
+
+# 高精度配置（medium模型，更高精度）
+high_accuracy:
+  model_size: 'm'  # medium
+  epochs: 150
+  batch: 8
+  imgsz: 800
+  pretrained: true
+  name: 'yolo11m_corner_high_accuracy'
+  data: '../datasets/yolo_corner/data.yaml'
+
+# 最佳性能配置（large模型，最高精度）
+best_performance:
+  model_size: 'l'  # large
+  epochs: 200
+  batch: 4
+  imgsz: 1024
+  pretrained: true
+  name: 'yolo11l_corner_best'
+  data: '../datasets/yolo_corner/data.yaml'
+
+# 从头训练配置（不使用预训练权重）
+from_scratch:
+  model_size: 's'
+  epochs: 300
+  batch: 16
+  imgsz: 640
+  pretrained: false
+  name: 'yolo11s_corner_from_scratch'
+  data: '../datasets/yolo_corner/data.yaml'
+
+# 数据增强配置
+augmentation:
+  hsv_h: 0.015      # 色调增强
+  hsv_s: 0.7        # 饱和度增强
+  hsv_v: 0.4        # 亮度增强
+  degrees: 0.0      # 旋转增强（医学图像通常不旋转）
+  translate: 0.1    # 平移增强
+  scale: 0.5        # 缩放增强
+  shear: 0.0        # 剪切增强
+  perspective: 0.0  # 透视增强
+  flipud: 0.0       # 上下翻转（脊柱图像不建议）
+  fliplr: 0.5       # 左右翻转
+  mosaic: 1.0       # mosaic增强
+  mixup: 0.0        # mixup增强
+  copy_paste: 0.0   # copy-paste增强
+
+# 优化器配置
+optimizer:
+  optimizer: 'AdamW'
+  lr0: 0.001           # 初始学习率
+  lrf: 0.01            # 最终学习率因子
+  momentum: 0.937      # SGD momentum
+  weight_decay: 0.0005 # 权重衰减
+  warmup_epochs: 3.0   # 预热轮数
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+
+# 损失函数权重
+loss_weights:
+  box: 7.5    # 边界框损失
+  cls: 0.5    # 分类损失
+  dfl: 1.5    # DFL损失
+  pose: 12.0  # 姿态损失（关键点）
+  kobj: 1.0   # 关键点目标损失
+
+# 验证配置
+validation:
+  val: true           # 训练时验证
+  save_period: -1     # 保存周期（-1只保存最后）
+  plots: true         # 保存图表
+  verbose: true       # 详细输出
+
