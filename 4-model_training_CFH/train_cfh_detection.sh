@@ -119,7 +119,7 @@ while [[ $# -gt 0 ]]; do
         --best)
             MODEL="l"
             EPOCHS=200
-            IMGSZ=1024
+            IMGSZ=800
             BATCH=4
             NAME="best"
             shift

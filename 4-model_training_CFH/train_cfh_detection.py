@@ -78,7 +78,8 @@ def train_cfh_detection(
         'fliplr': 0.5,
         'mosaic': 1.0,
         'mixup': 0.0,
-        
+        'multi_scale': 0.5,  # 多尺度训练（推荐用于提升鲁棒性）
+
         # 其他
         'patience': 50,
         'save': True,

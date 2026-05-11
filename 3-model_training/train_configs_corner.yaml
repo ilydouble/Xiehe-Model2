@@ -36,7 +36,7 @@ best_performance:
   model_size: 'l'  # large
   epochs: 200
   batch: 4
-  imgsz: 1024
+  imgsz: 800
   pretrained: true
   name: 'yolo11l_corner_best'
   data: '../datasets/yolo_corner/data.yaml'
@@ -66,6 +66,7 @@ augmentation:
   mosaic: 1.0       # mosaic增强
   mixup: 0.0        # mixup增强
   copy_paste: 0.0   # copy-paste增强
+  multi_scale: 0.5  # 多尺度训练（提升不同尺寸下的鲁棒性）
 
 # 优化器配置
 optimizer:

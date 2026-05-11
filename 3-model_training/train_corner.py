@@ -120,6 +120,7 @@ def train_model(config, device='0', resume=False):
         'mosaic': config.get('mosaic', 1.0),
         'mixup': config.get('mixup', 0.0),
         'copy_paste': config.get('copy_paste', 0.0),
+        'multi_scale': config.get('multi_scale', 0.5),  # 多尺度训练
         'save': True,
         'save_period': config.get('save_period', -1),
         'val': config.get('val', True),
