@@ -15,19 +15,30 @@
   - `progress.md`（新建）
 
 ### Phase 2: 完整性与统计分析
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
+  - 新增并运行平铺 LabelMe 全量审计脚本。
+  - 完成配对、JSON/PNG 有效性、标签、shape、尺寸、几何、重复文件、来源与标注体系交叉统计。
 - Files created/modified:
+  - `1-check_data/analyze_flat_labelme.py`（新建并修正）
+  - `analysis/side_labelme_20260903/audit.json`（生成）
 
 ### Phase 3: 抽样视觉质检
-- **Status:** pending
+- **Status:** complete
 - Actions taken:
+  - 新增无 Pillow/OpenCV 依赖的标注预览工具。
+  - 查看全部自动异常候选、边缘缺标签样本，并按 8 个额外来源抽查完整样本。
+  - 将缺失标签区分为合理视野裁切、疑似漏标和需结合解剖判断的编号跳跃。
 - Files created/modified:
+  - `1-check_data/render_labelme_preview.py`（新建并修正）
+  - `analysis/side_labelme_20260903/*.png`（生成预览）
 
 ### Phase 4: 复核与交付
-- **Status:** pending
+- **Status:** in_progress
 - Actions taken:
+  - 编写完整分析报告。
 - Files created/modified:
+  - `docs/side_labelme_20260903_analysis.md`（新建）
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |

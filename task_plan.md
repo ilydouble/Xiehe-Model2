@@ -4,7 +4,7 @@
 对 `/Volumes/E/spine_data/20260903-侧面数据第二批` 做只读的数据完整性、标注分布与质量分析，并向用户交付可核查的结论。
 
 ## Current Phase
-Phase 2
+Phase 4
 
 ## Phases
 
@@ -15,20 +15,20 @@ Phase 2
 - **Status:** complete
 
 ### Phase 2: 完整性与统计分析
-- [ ] 检查图像/JSON 配对及 JSON 可解析性
-- [ ] 统计类别、shape 类型、图像尺寸和标注数量
-- [ ] 检查坐标越界、退化、多边形/矩形异常等问题
-- **Status:** in_progress
+- [x] 检查图像/JSON 配对及 JSON 可解析性
+- [x] 统计类别、shape 类型、图像尺寸和标注数量
+- [x] 检查坐标越界、退化、多边形/矩形异常等问题
+- **Status:** complete
 
 ### Phase 3: 抽样视觉质检
-- [ ] 生成或查看代表性标注样本
-- [ ] 记录可疑标注与典型模式
-- **Status:** pending
+- [x] 生成或查看代表性标注样本
+- [x] 记录可疑标注与典型模式
+- **Status:** complete
 
 ### Phase 4: 复核与交付
 - [ ] 复核统计结果
 - [ ] 输出问题清单和后续建议
-- **Status:** pending
+- **Status:** in_progress
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
