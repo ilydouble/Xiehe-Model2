@@ -58,8 +58,12 @@ def read_ppm(path: Path) -> tuple[int, int, bytearray]:
     width, height, maximum = map(int, tokens)
     if maximum != 255:
         raise ValueError(f"unsupported PPM maximum: {maximum}")
-    while cursor < len(data) and chr(data[cursor]).isspace():
+    if data[cursor:cursor + 2] == b"\r\n":
+        cursor += 2
+    elif cursor < len(data) and chr(data[cursor]).isspace():
         cursor += 1
+    else:
+        raise ValueError("PPM header is missing the pixel-data separator")
     pixels = bytearray(data[cursor:])
     expected = width * height * 3
     if len(pixels) != expected:
