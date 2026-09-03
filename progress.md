@@ -39,6 +39,7 @@
 | 2026-09-04 | `git commit` 无法创建 `.git/index.lock` | 1 | 改用受控权限，并限定暂存文件范围 |
 | 2026-09-04 | Python 缺少 Pillow | 1 | 使用 PNG IHDR 与系统图像工具替代 |
 | 2026-09-04 | 首轮几何统计误报 point/line 且异常明细封顶 | 1 | 修正适用 shape 类型并重跑审计 |
+| 2026-09-04 | FFmpeg 无法解码 SVG | 1 | 改用 PPM 中间图与标准库绘线 |
 
 ## 5-Question Reboot Check
 | Question | Answer |

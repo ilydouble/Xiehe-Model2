@@ -47,6 +47,7 @@ Phase 2
 | `.git/index.lock` 无法创建（沙箱只读） | 1 | 使用受控权限执行仅针对本任务文件的提交 |
 | `ModuleNotFoundError: PIL` | 1 | 不安装依赖，改用标准库解析 PNG 元数据 |
 | 初版审计将合法 point/line 当成退化和微小 shape | 1 | 限定面状 shape 的面积规则并取消影响计数的明细截断 |
+| FFmpeg 无 SVG decoder | 1 | 改用 PPM 中间图与标准库绘制标注预览 |
 
 ## Notes
 - 不纳入或覆盖工作区已有的无关修改。

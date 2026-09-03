@@ -28,6 +28,7 @@
 - 文件名来源前缀共 17 类，最大三类为 LFPY 164、THBZ 141、LWSY 80；拆分训练/验证/测试时应按患者/来源分组，避免同源泄漏与站点偏差。
 - 顶层第 707 个 JSON 是 `export-summary.json`，并非图像标注；主体样本目录实际为严格的 706 PNG + 706 LabelMe JSON 配对。
 - 当前 Python 环境也没有 OpenCV、Matplotlib、scikit-image、CairoSVG 或 Wand；视觉质检将使用现有 FFmpeg/系统工具生成只读预览，不额外安装包。
+- 官方导出汇总 `export-summary.json` 与独立扫描一致：requested=706、succeeded=706，空标注/未找到/覆盖重复/对象缺失/失败均为 0。
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -40,6 +41,7 @@
 |-------|------------|
 | Python 环境没有 Pillow | 对 PNG 用标准库解析 IHDR；视觉预览使用系统图像工具 |
 | 初版几何规则误报 point/line 为零面积异常，且异常列表封顶影响计数 | 仅对面状 shape 检查面积，并保留完整问题计数后重跑 |
+| FFmpeg 能识别 SVG 容器但没有 SVG 解码器 | 不走 SVG 栅格化，改用 FFmpeg 图像解码 + 标准库绘线 |
 
 ## Resources
 - 数据目录：`/Volumes/E/spine_data/20260903-侧面数据第二批`
