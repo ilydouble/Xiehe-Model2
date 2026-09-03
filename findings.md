@@ -29,6 +29,7 @@
 - 顶层第 707 个 JSON 是 `export-summary.json`，并非图像标注；主体样本目录实际为严格的 706 PNG + 706 LabelMe JSON 配对。
 - 当前 Python 环境也没有 OpenCV、Matplotlib、scikit-image、CairoSVG 或 Wand；视觉质检将使用现有 FFmpeg/系统工具生成只读预览，不额外安装包。
 - 官方导出汇总 `export-summary.json` 与独立扫描一致：requested=706、succeeded=706，空标注/未找到/覆盖重复/对象缺失/失败均为 0。
+- 越界样本的标注预览显示 C2 位于图像最上缘，图像本身截断了椎体；两个顶点仅越界约 0.3-2.3 px，属于边界裁切带来的轻微坐标外溢，但转换到 YOLO 等严格归一化格式前仍应 clip 到图像范围。
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -42,6 +43,7 @@
 | Python 环境没有 Pillow | 对 PNG 用标准库解析 IHDR；视觉预览使用系统图像工具 |
 | 初版几何规则误报 point/line 为零面积异常，且异常列表封顶影响计数 | 仅对面状 shape 检查面积，并保留完整问题计数后重跑 |
 | FFmpeg 能识别 SVG 容器但没有 SVG 解码器 | 不走 SVG 栅格化，改用 FFmpeg 图像解码 + 标准库绘线 |
+| FFmpeg `tile` 在单帧输出时只产生第一格 | 改用 8 路显式输入与 `xstack` 生成问题样本拼图 |
 
 ## Resources
 - 数据目录：`/Volumes/E/spine_data/20260903-侧面数据第二批`
