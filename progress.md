@@ -37,6 +37,7 @@
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
 | 2026-09-04 | `git commit` 无法创建 `.git/index.lock` | 1 | 改用受控权限，并限定暂存文件范围 |
+| 2026-09-04 | Python 缺少 Pillow | 1 | 使用 PNG IHDR 与系统图像工具替代 |
 
 ## 5-Question Reboot Check
 | Question | Answer |

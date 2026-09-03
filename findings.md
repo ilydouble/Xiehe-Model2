@@ -14,6 +14,9 @@
 - JSON 比 PNG 多 1 个，可能由目录中的 XLSX 对应同名 JSON、孤立 JSON 或其他命名情况导致，需按 stem 精确核查。
 - 仓库已有的 `1-check_data/analyze_dataset.py` 面向“每个样本一个子目录”的旧数据组织，并依赖预设 `label.txt`；本批次主体是单层平铺的 PNG/JSON 配对，不能直接套用旧脚本。
 - 本次将新增一个通用的平铺 LabelMe 扫描脚本，输出机器可读报告，重点覆盖配对、JSON 字段、图像尺寸、标签/shape 分布、边界、退化几何、重复文件及命名风险。
+- 环境未安装 Pillow；本批次图像是 PNG，因此脚本将直接读取 PNG IHDR 获取尺寸/位深/颜色类型，避免为只读统计新增依赖。视觉抽样可使用系统 `sips`/FFmpeg 生成预览。
+- 现有 `datasets/LAT202511/label.txt` 只有 21 个标签，含 C7、T1-T13、L1-L5、S1、CFH，但不含抽样 JSON 已出现的 C2-C6，不能作为本批次的完整标签真值。
+- `measurements.xlsx` 含两个工作表（XML 体量约 425 KB 和 455 KB），看起来是批量测量结果；先完成 LabelMe 本体统计，再决定是否用于交叉核验。
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -24,6 +27,7 @@
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|
+| Python 环境没有 Pillow | 对 PNG 用标准库解析 IHDR；视觉预览使用系统图像工具 |
 
 ## Resources
 - 数据目录：`/Volumes/E/spine_data/20260903-侧面数据第二批`

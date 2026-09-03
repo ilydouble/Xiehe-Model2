@@ -45,6 +45,7 @@ Phase 2
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | `.git/index.lock` 无法创建（沙箱只读） | 1 | 使用受控权限执行仅针对本任务文件的提交 |
+| `ModuleNotFoundError: PIL` | 1 | 不安装依赖，改用标准库解析 PNG 元数据 |
 
 ## Notes
 - 不纳入或覆盖工作区已有的无关修改。
