@@ -12,6 +12,8 @@
 - 同时存在 1,415 个 `._*` 辅助文件；它们不应进入训练集或标注解析流程。
 - 首个抽样 JSON 是 LabelMe `2025.7.4.0` 格式，`shapes` 为椎体类别（如 C2-C7）的 polygon 标注；需要继续全量核查标签集合与几何合法性。
 - JSON 比 PNG 多 1 个，可能由目录中的 XLSX 对应同名 JSON、孤立 JSON 或其他命名情况导致，需按 stem 精确核查。
+- 仓库已有的 `1-check_data/analyze_dataset.py` 面向“每个样本一个子目录”的旧数据组织，并依赖预设 `label.txt`；本批次主体是单层平铺的 PNG/JSON 配对，不能直接套用旧脚本。
+- 本次将新增一个通用的平铺 LabelMe 扫描脚本，输出机器可读报告，重点覆盖配对、JSON 字段、图像尺寸、标签/shape 分布、边界、退化几何、重复文件及命名风险。
 
 ## Technical Decisions
 | Decision | Rationale |
