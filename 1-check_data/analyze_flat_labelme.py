@@ -28,6 +28,12 @@ from typing import Any, Iterable
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+CORE_LABELS = [
+    *(f"C{i}" for i in range(2, 8)),
+    *(f"T{i}" for i in range(1, 13)),
+    *(f"L{i}" for i in range(1, 6)),
+    "S1",
+]
 
 
 def percentile(values: list[float], q: float) -> float | None:
@@ -202,6 +208,7 @@ def audit_dataset(root: Path) -> dict[str, Any]:
     duplicate_labels: list[dict[str, Any]] = []
     dimension_mismatches: list[dict[str, Any]] = []
     image_path_issues: list[dict[str, Any]] = []
+    incomplete_core_labels: list[dict[str, Any]] = []
     internal_level_gaps: list[dict[str, Any]] = []
     vertical_order_issues: list[dict[str, Any]] = []
     label_variants: dict[str, set[str]] = defaultdict(set)
@@ -399,21 +406,18 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             annotation_profile = "no_femoral_head_marker"
         annotation_profile_counts[annotation_profile] += 1
         source_annotation_profile_counts[source_prefix(json_path.stem)][annotation_profile] += 1
+        missing_core = [label for label in CORE_LABELS if label not in per_image_labels]
+        if missing_core:
+            incomplete_core_labels.append({"json": json_rel, "missing": missing_core})
         signature_counts[", ".join(sorted(per_image_labels, key=lambda item: (canonical_anatomical_index(item) is None, canonical_anatomical_index(item) or 999, item)))] += 1
         repeated = {label: count for label, count in seen_labels.items() if count > 1}
         if repeated:
             duplicate_labels.append({"json": json_rel, "labels": repeated})
 
-        normal_sequence = [
-            *(f"C{i}" for i in range(2, 8)),
-            *(f"T{i}" for i in range(1, 13)),
-            *(f"L{i}" for i in range(1, 6)),
-            "S1",
-        ]
-        normal_indices = [index for index, label in enumerate(normal_sequence) if label in anatomical_present]
+        normal_indices = [index for index, label in enumerate(CORE_LABELS) if label in anatomical_present]
         if len(normal_indices) >= 2:
             first, last = min(normal_indices), max(normal_indices)
-            missing_internal = [label for label in normal_sequence[first:last + 1] if label not in anatomical_present]
+            missing_internal = [label for label in CORE_LABELS[first:last + 1] if label not in anatomical_present]
             if missing_internal:
                 internal_level_gaps.append({"json": json_rel, "missing_between_first_and_last": missing_internal})
 
@@ -443,15 +447,9 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             "area_ratio": numeric_summary(label_area_ratios[label]),
         }
 
-    core_labels = [
-        *(f"C{i}" for i in range(2, 8)),
-        *(f"T{i}" for i in range(1, 13)),
-        *(f"L{i}" for i in range(1, 6)),
-        "S1",
-    ]
     core_missing_counts = {
         label: len(json_files) - label_image_counts[label]
-        for label in core_labels
+        for label in CORE_LABELS
     }
 
     return {
@@ -506,6 +504,7 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             "nonempty_flags_count": nonempty_flags_count,
             "nonnull_group_id_count": nonnull_group_id_count,
             "nonempty_description_count": nonempty_description_count,
+            "complete_core_label_images": len(json_files) - len(incomplete_core_labels),
         },
         "quality_issues": {
             "empty_annotations": empty_annotations,
@@ -518,6 +517,7 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             "duplicate_labels_within_image": duplicate_labels,
             "dimension_mismatches": dimension_mismatches,
             "image_path_issues": image_path_issues,
+            "incomplete_core_labels": incomplete_core_labels,
             "internal_level_gaps": internal_level_gaps,
             "vertical_order_issues": vertical_order_issues,
         },
