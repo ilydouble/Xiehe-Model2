@@ -4,21 +4,21 @@
 对 `/Volumes/E/spine_data/20260903-侧面数据第二批` 做只读的数据完整性、标注分布与质量分析，并向用户交付可核查的结论。
 
 ## Current Phase
-Phase 1
+Phase 2
 
 ## Phases
 
 ### Phase 1: 数据发现与口径确认
-- [ ] 确认目录可访问及文件组织方式
-- [ ] 识别图片、LabelMe JSON 与其他文件
-- [ ] 记录数据分析口径
-- **Status:** in_progress
+- [x] 确认目录可访问及文件组织方式
+- [x] 识别图片、LabelMe JSON 与其他文件
+- [x] 记录数据分析口径
+- **Status:** complete
 
 ### Phase 2: 完整性与统计分析
 - [ ] 检查图像/JSON 配对及 JSON 可解析性
 - [ ] 统计类别、shape 类型、图像尺寸和标注数量
 - [ ] 检查坐标越界、退化、多边形/矩形异常等问题
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 3: 抽样视觉质检
 - [ ] 生成或查看代表性标注样本
