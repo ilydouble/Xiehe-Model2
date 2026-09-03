@@ -34,15 +34,21 @@
   - `analysis/side_labelme_20260903/*.png`（生成预览）
 
 ### Phase 4: 复核与交付
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 编写完整分析报告。
+  - 从原始数据重新运行审计，并在忽略生成时间后确认结果逐字段一致。
+  - 对 T1/T2 疑似互换样本重新生成预览，确认预览工具可复现。
 - Files created/modified:
   - `docs/side_labelme_20260903_analysis.md`（新建）
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
+| 审计脚本语法 | `python3 -m py_compile` | 无语法错误 | 通过 | ✓ |
+| 全量数据复扫 | 706 对 PNG/JSON | 与交付 audit 一致 | 忽略生成时间后逐字段一致 | ✓ |
+| 预览回归 | T1/T2 疑似互换样本 | 生成有效 PNG | 320×906 RGB PNG | ✓ |
+| 原始数据保护 | 数据目录 | 不写入原始目录 | 所有产物均在工作区或临时目录 | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -57,8 +63,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 1：数据发现与口径确认 |
-| Where am I going? | 全量统计、抽样视觉质检、复核交付 |
+| Where am I? | 已完成全部阶段 |
+| Where am I going? | 向用户交付结论、报告与可复用工具 |
 | What's the goal? | 只读分析侧面 LabelMe 数据集并交付可核查结论 |
 | What have I learned? | 见 `findings.md` |
-| What have I done? | 已建立分析计划和记录文件 |
+| What have I done? | 已完成全量审计、分层视觉质检、兼容性分析与复现验证 |
