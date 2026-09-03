@@ -26,6 +26,8 @@
 - 发现 5 例解剖序列内部缺层：分别缺 T12、L5（2 例）、T1-T3、L4；其中缺层可能是视野截断，也可能是漏标，需结合图像判断。
 - 图像尺寸共有 292 种，384/706（54.4%）为 1536×4352；PNG 颜色格式混合：391 张 8-bit 灰度（color type 0），315 张 8-bit RGBA（color type 6）。训练前需统一解码通道数，并采用保持纵横比的 resize/letterbox。
 - 文件名来源前缀共 17 类，最大三类为 LFPY 164、THBZ 141、LWSY 80；拆分训练/验证/测试时应按患者/来源分组，避免同源泄漏与站点偏差。
+- 顶层第 707 个 JSON 是 `export-summary.json`，并非图像标注；主体样本目录实际为严格的 706 PNG + 706 LabelMe JSON 配对。
+- 当前 Python 环境也没有 OpenCV、Matplotlib、scikit-image、CairoSVG 或 Wand；视觉质检将使用现有 FFmpeg/系统工具生成只读预览，不额外安装包。
 
 ## Technical Decisions
 | Decision | Rationale |
