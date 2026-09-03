@@ -174,9 +174,15 @@ def audit_dataset(root: Path) -> dict[str, Any]:
 
     label_shape_counts: Counter[str] = Counter()
     label_image_counts: Counter[str] = Counter()
+    label_shape_type_counts: dict[str, Counter[str]] = defaultdict(Counter)
     shape_type_counts: Counter[str] = Counter()
     version_counts: Counter[str] = Counter()
     source_counts: Counter[str] = Counter(source_prefix(path.stem) for path in images)
+    source_png_format_counts: dict[str, Counter[str]] = defaultdict(Counter)
+    for path, metadata in png_metadata.items():
+        source_png_format_counts[source_prefix(path.stem)][f"bit{metadata['bit_depth']}/color{metadata['color_type']}"] += 1
+    annotation_profile_counts: Counter[str] = Counter()
+    source_annotation_profile_counts: dict[str, Counter[str]] = defaultdict(Counter)
     labels_per_image: list[float] = []
     shapes_per_image: list[float] = []
     points_per_shape: list[float] = []
@@ -276,6 +282,7 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             shape_type = str(shape.get("shape_type", "[missing]"))
             shape_type_counts[shape_type] += 1
             label_shape_counts[label] += 1
+            label_shape_type_counts[label][shape_type] += 1
             seen_labels[label] += 1
             per_image_labels.add(label)
             if shape.get("flags"):
@@ -382,6 +389,16 @@ def audit_dataset(root: Path) -> dict[str, Any]:
         for label in per_image_labels:
             label_image_counts[label] += 1
         labels_per_image.append(float(len(per_image_labels)))
+        if {"FH-1", "FH-2"}.issubset(per_image_labels):
+            annotation_profile = "FH-1+FH-2"
+        elif "CFH" in per_image_labels:
+            annotation_profile = "CFH"
+        elif {"FH-1", "FH-2"} & per_image_labels:
+            annotation_profile = "incomplete_FH_pair"
+        else:
+            annotation_profile = "no_femoral_head_marker"
+        annotation_profile_counts[annotation_profile] += 1
+        source_annotation_profile_counts[source_prefix(json_path.stem)][annotation_profile] += 1
         signature_counts[", ".join(sorted(per_image_labels, key=lambda item: (canonical_anatomical_index(item) is None, canonical_anatomical_index(item) or 999, item)))] += 1
         repeated = {label: count for label, count in seen_labels.items() if count > 1}
         if repeated:
@@ -421,9 +438,21 @@ def audit_dataset(root: Path) -> dict[str, Any]:
         label_stats[label] = {
             "shapes": label_shape_counts[label],
             "images": label_image_counts[label],
+            "shape_types": dict(label_shape_type_counts[label].most_common()),
             "points_per_shape": numeric_summary(float(value) for value in label_point_counts[label]),
             "area_ratio": numeric_summary(label_area_ratios[label]),
         }
+
+    core_labels = [
+        *(f"C{i}" for i in range(2, 8)),
+        *(f"T{i}" for i in range(1, 13)),
+        *(f"L{i}" for i in range(1, 6)),
+        "S1",
+    ]
+    core_missing_counts = {
+        label: len(json_files) - label_image_counts[label]
+        for label in core_labels
+    }
 
     return {
         "schema_version": 1,
@@ -440,6 +469,10 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             "json_without_image": json_without_image,
             "ambiguous_image_stems": ambiguous_image_stems,
             "source_prefix_counts": dict(source_counts.most_common()),
+            "source_png_format_counts": {
+                source: dict(counts.most_common())
+                for source, counts in sorted(source_png_format_counts.items())
+            },
         },
         "images": {
             "invalid_images": invalid_images,
@@ -461,6 +494,12 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             "bbox_area_ratio": numeric_summary(bbox_area_ratios),
             "polygon_area_ratio": numeric_summary(polygon_area_ratios),
             "label_stats": label_stats,
+            "core_missing_counts": core_missing_counts,
+            "annotation_profile_counts": dict(annotation_profile_counts.most_common()),
+            "source_annotation_profile_counts": {
+                source: dict(counts.most_common())
+                for source, counts in sorted(source_annotation_profile_counts.items())
+            },
             "label_set_signatures": dict(signature_counts.most_common()),
             "label_variant_collisions": variant_collisions,
             "embedded_image_data_count": embedded_image_data_count,
