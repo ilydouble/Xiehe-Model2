@@ -116,11 +116,6 @@ def source_prefix(stem: str) -> str:
     return match.group(1).upper() if match else "[other]"
 
 
-def bounded_append(target: list[dict[str, Any]], item: dict[str, Any], limit: int = 200) -> None:
-    if len(target) < limit:
-        target.append(item)
-
-
 def audit_dataset(root: Path) -> dict[str, Any]:
     all_files = [path for path in root.rglob("*") if path.is_file()]
     appledouble = [path for path in all_files if path.name.startswith("._")]
@@ -269,11 +264,11 @@ def audit_dataset(root: Path) -> dict[str, Any]:
         for shape_index, shape in enumerate(shapes):
             total_shapes += 1
             if not isinstance(shape, dict):
-                bounded_append(invalid_points, {"json": json_rel, "shape_index": shape_index, "issue": "shape is not an object"})
+                invalid_points.append({"json": json_rel, "shape_index": shape_index, "issue": "shape is not an object"})
                 continue
             raw_label = shape.get("label")
             if not isinstance(raw_label, str) or not raw_label.strip():
-                bounded_append(missing_or_blank_labels, {"json": json_rel, "shape_index": shape_index})
+                missing_or_blank_labels.append({"json": json_rel, "shape_index": shape_index})
                 label = "[missing]"
             else:
                 label = raw_label.strip()
@@ -301,14 +296,14 @@ def audit_dataset(root: Path) -> dict[str, Any]:
                     ):
                         parsed_points.append((float(point[0]), float(point[1])))
                     else:
-                        bounded_append(invalid_points, {
+                        invalid_points.append({
                             "json": json_rel,
                             "shape_index": shape_index,
                             "label": label,
                             "point": point,
                         })
             else:
-                bounded_append(invalid_points, {"json": json_rel, "shape_index": shape_index, "label": label, "points": raw_points})
+                invalid_points.append({"json": json_rel, "shape_index": shape_index, "label": label, "points": raw_points})
 
             point_count = len(parsed_points)
             total_points += point_count
@@ -316,7 +311,7 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             label_point_counts[label].append(point_count)
             minimum_points = {"polygon": 3, "rectangle": 2, "circle": 2, "line": 2, "linestrip": 2, "point": 1}.get(shape_type, 1)
             if point_count < minimum_points:
-                bounded_append(insufficient_points, {
+                insufficient_points.append({
                     "json": json_rel,
                     "shape_index": shape_index,
                     "label": label,
@@ -333,8 +328,17 @@ def audit_dataset(root: Path) -> dict[str, Any]:
             bbox_height = max(ys) - min(ys)
             bbox_area = bbox_width * bbox_height
             polygon_shape_area = polygon_area(parsed_points) if shape_type == "polygon" else bbox_area
-            if bbox_width <= 0 or bbox_height <= 0 or (shape_type == "polygon" and polygon_shape_area <= 0):
-                bounded_append(degenerate_shapes, {
+            surface_shape = shape_type in {"polygon", "rectangle", "circle"}
+            line_shape = shape_type in {"line", "linestrip"}
+            line_length = sum(
+                math.hypot(x2 - x1, y2 - y1)
+                for (x1, y1), (x2, y2) in zip(parsed_points, parsed_points[1:])
+            )
+            if (
+                (surface_shape and (bbox_width <= 0 or bbox_height <= 0 or polygon_shape_area <= 0))
+                or (line_shape and line_length <= 0)
+            ):
+                degenerate_shapes.append({
                     "json": json_rel,
                     "shape_index": shape_index,
                     "label": label,
@@ -351,11 +355,12 @@ def audit_dataset(root: Path) -> dict[str, Any]:
                 image_area = float(width) * float(height)
                 bbox_ratio = bbox_area / image_area
                 polygon_ratio = polygon_shape_area / image_area
-                bbox_area_ratios.append(bbox_ratio)
-                polygon_area_ratios.append(polygon_ratio)
-                label_area_ratios[label].append(polygon_ratio)
-                if polygon_ratio < 1e-5:
-                    bounded_append(tiny_shapes, {
+                if surface_shape:
+                    bbox_area_ratios.append(bbox_ratio)
+                    polygon_area_ratios.append(polygon_ratio)
+                    label_area_ratios[label].append(polygon_ratio)
+                if surface_shape and polygon_ratio < 1e-5:
+                    tiny_shapes.append({
                         "json": json_rel,
                         "shape_index": shape_index,
                         "label": label,
@@ -366,7 +371,7 @@ def audit_dataset(root: Path) -> dict[str, Any]:
                     if x < 0 or y < 0 or x > float(width) or y > float(height)
                 ]
                 if oob:
-                    bounded_append(out_of_bounds_shapes, {
+                    out_of_bounds_shapes.append({
                         "json": json_rel,
                         "shape_index": shape_index,
                         "label": label,
