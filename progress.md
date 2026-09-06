@@ -58,6 +58,7 @@
   - 识别旧转换器“首个 JSON 应用于目录内所有 PNG”的多图目录错配风险。
   - 审计现有 YOLO split，确认 5 个患者跨 train/val/test，需在合并时整体重拆。
   - 用旧数据 18 例 C1/C2 circle 与 CFH 的共标注验证“两股骨头中心中点≈CFH”，中位误差 5.88 px。
+  - 确认新批 CFH 与 FH 双点中点的归一化位置分布一致，并识别出 705 个患者 ID，其中 1 个患者有两张片。
 - Files created/modified:
   - `task_plan.md`（追加阶段）
   - `findings.md`（追加需求）
