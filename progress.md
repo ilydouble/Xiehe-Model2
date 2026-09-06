@@ -49,6 +49,8 @@
 - **Started:** 2026-09-07
 - Actions taken:
   - 恢复既有分析上下文，准备按同一口径对比新旧侧面数据。
+  - 定位旧数据 `datasets/LAT202511`，并用同一审计脚本完成全量统计。
+  - 确认目录、通道、polygon 点数、股骨头体系以及 C2/S1 同名异义冲突。
 - Files created/modified:
   - `task_plan.md`（追加阶段）
   - `findings.md`（追加需求）
