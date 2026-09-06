@@ -83,6 +83,7 @@
 | 2026-09-07 | 追加新阶段时补丁锚点不存在 | 1 | 改用当前文件稳定段落重新应用补丁 |
 | 2026-09-07 | 跨批次 1,110 张 PNG 全量 SHA-256 超过 30 秒 | 1 | 改按文件大小交集筛选候选后哈希 |
 | 2026-09-07 | split 重叠检查破坏 zsh PATH 且 awk 语法失败 | 1 | 改用临时 Python 脚本，避免 shell 特殊变量和保留名 |
+| 2026-09-07 | 股骨头分布脚本误读 AppleDouble JSON | 1 | 加入 `not name.startswith("._")` 过滤 |
 
 ## 5-Question Reboot Check
 | Question | Answer |
