@@ -45,7 +45,7 @@
 ## Session: 2026-09-07
 
 ### Phase 5: 新旧侧面数据兼容性核对
-- **Status:** in_progress
+- **Status:** complete
 - **Started:** 2026-09-07
 - Actions taken:
   - 恢复既有分析上下文，准备按同一口径对比新旧侧面数据。
@@ -60,6 +60,16 @@
   - 用旧数据 18 例 C1/C2 circle 与 CFH 的共标注验证“两股骨头中心中点≈CFH”，中位误差 5.88 px。
   - 确认新批 CFH 与 FH 双点中点的归一化位置分布一致，并识别出 705 个患者 ID，其中 1 个患者有两张片。
   - 对旧有效患者逐图严格配对，确认可直接使用的共同 18 类唯一图像为 356 张；现有 YOLO 中有 10 张疑似套错标注的无同 stem 图像。
+- Files created/modified:
+  - `findings.md`（追加兼容性结论）
+  - `progress.md`（追加核对过程）
+
+### Phase 6: 合并方案与风险结论
+- **Status:** in_progress
+- Actions taken:
+  - 形成推荐的 18 类合并口径、数据规范、转换流程和风险控制方案。
+- Files created/modified:
+  - `docs/lateral_dataset_merge_assessment.md`（新建）
 - Files created/modified:
   - `task_plan.md`（追加阶段）
   - `findings.md`（追加需求）
