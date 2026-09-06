@@ -65,9 +65,11 @@
   - `progress.md`（追加核对过程）
 
 ### Phase 6: 合并方案与风险结论
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 形成推荐的 18 类合并口径、数据规范、转换流程和风险控制方案。
+  - 复跑旧批严格配对、新批共同类别、跨批精确重复、患者 split 泄漏和股骨头中点验证。
+  - 确认保守结构完整候选规模为 1,056 张，已知 T1/T2 互换修正后可使用全部候选。
 - Files created/modified:
   - `docs/lateral_dataset_merge_assessment.md`（新建）
 - Files created/modified:
@@ -82,6 +84,11 @@
 | 全量数据复扫 | 706 对 PNG/JSON | 与交付 audit 一致 | 忽略生成时间后逐字段一致 | ✓ |
 | 预览回归 | T1/T2 疑似互换样本 | 生成有效 PNG | 320×906 RGB PNG | ✓ |
 | 原始数据保护 | 数据目录 | 不写入原始目录 | 所有产物均在工作区或临时目录 | ✓ |
+| 旧批严格配对 | 353 个已选患者目录 | 每图同 stem JSON、18 类完整、去重 | 356 张唯一完整图像 | ✓ |
+| 新批共同标签 | 706 张图像 | 统计共同 18 类完整性 | 700 完整、6 不完整 | ✓ |
+| 跨批精确重复 | 404 旧 PNG + 706 新 PNG | 无重复或列出重复 | 0 组跨批字节级重复 | ✓ |
+| 患者 split | 现有 368 张 YOLO 图像 | 无患者跨集合 | 发现 5 个患者跨集合，需重拆 | ⚠ |
+| 股骨头中点 | 旧 C1/C2/CFH 共标 18 例 | 中点接近 CFH | 中位 5.88 px、最大 10.87 px | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -100,8 +107,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | 已完成全部阶段 |
-| Where am I going? | 向用户交付结论、报告与可复用工具 |
+| Where am I? | 已完成新旧侧面数据合并评估 |
+| Where am I going? | 向用户交付合并结论；如获指示再实际构建大数据集 |
 | What's the goal? | 只读分析侧面 LabelMe 数据集并交付可核查结论 |
 | What have I learned? | 见 `findings.md` |
-| What have I done? | 已完成全量审计、分层视觉质检、兼容性分析与复现验证 |
+| What have I done? | 已完成两批数据同口径对比、严格候选计数、去重、split 泄漏检查及合并方案 |
