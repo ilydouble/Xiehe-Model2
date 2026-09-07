@@ -14,6 +14,8 @@
 ## Research Findings
 - 第一批原始数据现位于 `/Volumes/E/spine_data/LAT202511`；复核得到384个JSON、404张PNG、370个CFH point、345个S1 line，335个JSON同时具备直接CFH和有效S1 line，S2为0。
 - 第二批有694例同时具备可统一的股骨头中心与S1 line；其中FH-1/FH-2将取中点，直接CFH保持原坐标。两批原始候选合计1,029例，最终规模需扣除严格配对失败与精确重复。
+- 严格同目录同stem配对得到旧批384对、新批706对；旧批额外20张无JSON的PNG不会进入联合数据集。
+- 抽查两批确认S1 line均是两个像素坐标端点，CFH/FH均为单点；统一对象框可由CFH与S1两端点的外接范围加固定比例边距得到，避免不同批次依赖椎体数量产生框尺度偏差。
 - 仓库 `.gitignore` 已整体忽略 `datasets/`，因此约 2.2 GB 的生成训练数据不会误入 Git；转换器、测试、训练脚本和说明应单独提交。
 - 现有 `3-model_training/train_corner.py` 固定读取旧 18 类配置体系，且默认启用水平翻转；新 23 类数据需要独立训练入口，并应明确四角点 `flip_idx` 或关闭水平翻转，避免关键点语义错位。
 - 现有新批图像为灰度与 RGBA 混合，但 Ultralytics/OpenCV 默认以三通道读取 PNG；本地构建可保留无损原图，避免重复编码，同时在转换报告中记录原始通道差异。
@@ -89,6 +91,7 @@
 | 初次 split 重叠检查使用 zsh 特殊变量 `path`，导致后续命令无法找到 | 改为临时 Python 脚本解析文件名中的患者标识 |
 | 股骨头分布核对误读 `._*.json` | 过滤 AppleDouble 后再解析真实 JSON |
 | 临时 `jq` 路径查询命中了空节点 | 查明审计文件实际字段为 `annotations.label_stats` 后改用正确路径 |
+| 用 `xargs jq | head` 抽样时上游收到SIGPIPE | 已取得目标样本；后续避免在xargs长管道末端用head提前关闭输出 |
 
 ## Resources
 - 数据目录：`/Volumes/E/spine_data/20260903-侧面数据第二批`

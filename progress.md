@@ -117,6 +117,7 @@
   - 用户提供第一批新位置 `/Volumes/E/spine_data/LAT202511`，已确认目录可访问。
   - 复核旧批335例和新批694例具备统一三关键点所需的完整标注，原始候选合计1,029例。
   - 固定联合目标为单个pelvis对象与 `CFH、S1图像左端、S1图像右端` 三关键点。
+  - 核对两批严格同stem配对和代表性几何，确认旧384对、新706对，目标point/line结构可统一。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
@@ -148,6 +149,7 @@
 | 2026-09-07 | split 重叠检查破坏 zsh PATH 且 awk 语法失败 | 1 | 改用临时 Python 脚本，避免 shell 特殊变量和保留名 |
 | 2026-09-07 | 股骨头分布脚本误读 AppleDouble JSON | 1 | 加入 `not name.startswith("._")` 过滤 |
 | 2026-09-07 | `jq` 查询审计标签时字段路径错误返回 null | 1 | 检查顶层结构后使用 `annotations.label_stats` |
+| 2026-09-07 | `xargs jq` 抽样管道被末端 `head` 提前关闭并报告SIGPIPE | 1 | 数据已正确取得；后续不再用会提前关流的同类管道 |
 
 ## 5-Question Reboot Check
 | Question | Answer |
