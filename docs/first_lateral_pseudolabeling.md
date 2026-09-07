@@ -56,6 +56,12 @@
 ./5-inference/run_pseudo_label_first_lateral.sh --audit-only
 ```
 
+全量命令会同时创建扁平的 `labelme_review/`。如果已有候选输出但没有该目录，可单独补建：
+
+```bash
+./5-inference/run_pseudo_label_first_lateral.sh --prepare-review-only
+```
+
 若本机Python位置不同，可显式指定：
 
 ```bash
@@ -64,7 +70,7 @@ PYTHON_BIN=/path/to/python3 ./5-inference/run_pseudo_label_first_lateral.sh --ap
 
 ## 人工复核
 
-用LabelMe打开输出目录中的 `candidates/`。建议按 `review_queue.csv` 的顺序先处理 `unresolved` 和 `low`，再处理 `medium`、`high`：
+用LabelMe打开输出目录中的 `labelme_review/`，即可连续翻阅全部384张。建议在表格软件中按 `review_queue.csv` 的 `status` 和 `quality` 筛选，先处理 `unresolved` 和 `low`，再处理 `medium`、`high`：
 
 1. 检查C2-C6是否各有且仅有一个颈椎四边形；
 2. 检查从C2到C7的上下顺序；

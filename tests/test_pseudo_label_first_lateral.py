@@ -116,7 +116,13 @@ class PseudoLabelTests(unittest.TestCase):
             args = type(
                 "Args",
                 (),
-                {"source": source, "model": model, "output": output, "audit_only": False},
+                {
+                    "source": source,
+                    "model": model,
+                    "output": output,
+                    "audit_only": False,
+                    "prepare_review_only": False,
+                },
             )()
             with self.assertRaises(FileExistsError):
                 MODULE.run(args)
@@ -201,6 +207,16 @@ class PseudoLabelTests(unittest.TestCase):
             report = MODULE.audit_output(source, output)
             self.assertEqual(report["status"], "passed")
             self.assertTrue(report["checks"]["existing_shape_prefix_preserved"])
+
+            prepared = MODULE.prepare_labelme_review(source, output)
+            self.assertEqual(prepared["samples"], 1)
+            flat = output / "labelme_review"
+            self.assertTrue((flat / "image.png").is_symlink())
+            flat_annotation = json.loads((flat / "image.json").read_text())
+            self.assertEqual(flat_annotation["imagePath"], "image.png")
+            self.assertEqual(flat_annotation["shapes"], output_annotation["shapes"])
+            audited_again = MODULE.audit_output(source, output)
+            self.assertTrue(audited_again["checks"]["flat_labelme_review_present"])
 
 
 if __name__ == "__main__":

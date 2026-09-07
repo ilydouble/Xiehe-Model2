@@ -603,6 +603,53 @@ def validate_model(model: Any) -> dict[int, str]:
     return names
 
 
+def prepare_labelme_review(source: Path, output: Path) -> dict[str, Any]:
+    """Create one flat directory that LabelMe can browse continuously."""
+    source = source.resolve()
+    output = output.resolve()
+    manifest_path = output / "manifest.csv"
+    destination = output / "labelme_review"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"Manifest not found: {manifest_path}")
+    if destination.exists():
+        raise FileExistsError(f"Review directory already exists; refusing overwrite: {destination}")
+    with manifest_path.open(encoding="utf-8", newline="") as handle:
+        manifest = list(csv.DictReader(handle))
+    basenames = [Path(row["relative_image"]).name for row in manifest]
+    if len(basenames) != len(set(basenames)):
+        duplicates = sorted(name for name, count in Counter(basenames).items() if count > 1)
+        raise ValueError(f"Cannot flatten duplicate image basenames: {duplicates[:5]}")
+
+    staging = Path(tempfile.mkdtemp(prefix=".labelme_review.", dir=output))
+    try:
+        for row in manifest:
+            relative_image = Path(row["relative_image"])
+            source_image = source / relative_image
+            candidate_json = output / row["output_json"]
+            if not source_image.is_file() or not candidate_json.is_file():
+                raise FileNotFoundError(f"Missing source/candidate for {relative_image}")
+            annotation = load_annotation(candidate_json)
+            annotation["imagePath"] = source_image.name
+            annotation["imageData"] = None
+            (staging / source_image.with_suffix(".json").name).write_text(
+                json.dumps(annotation, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            os.symlink(source_image, staging / source_image.name)
+        staging.rename(destination)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    report = {
+        "status": "ready",
+        "directory": str(destination),
+        "samples": len(manifest),
+        "images_are_source_symlinks": True,
+    }
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return report
+
+
 def audit_output(source: Path, output: Path) -> dict[str, Any]:
     """Audit a generated review set without importing inference dependencies."""
     source = source.resolve()
@@ -623,6 +670,7 @@ def audit_output(source: Path, output: Path) -> dict[str, Any]:
     added_counts: Counter[str] = Counter()
     unresolved_counts: Counter[str] = Counter()
     quality_counts: Counter[str] = Counter()
+    flat_review = output / "labelme_review"
     for row in manifest:
         relative_image = Path(row["relative_image"])
         source_image = source / relative_image
@@ -689,6 +737,17 @@ def audit_output(source: Path, output: Path) -> dict[str, Any]:
         coverage = existing_labels | set(appended_labels) | set(unresolved)
         if coverage != CLASS_SET:
             errors.append(f"{prefix}: class coverage accounting is incomplete")
+        if flat_review.is_dir():
+            flat_image = flat_review / relative_image.name
+            flat_json = flat_review / relative_image.with_suffix(".json").name
+            if not flat_image.is_symlink() or flat_image.resolve() != source_image.resolve():
+                errors.append(f"{prefix}: flat review image symlink is invalid")
+            if not flat_json.is_file():
+                errors.append(f"{prefix}: flat review JSON missing")
+            else:
+                flat_annotation = load_annotation(flat_json)
+                if flat_annotation.get("shapes") != candidate_shapes:
+                    errors.append(f"{prefix}: flat review shapes differ from candidate JSON")
 
     expected_counts = summary.get("counts", {})
     if len(manifest) != expected_counts.get("processed_samples"):
@@ -717,6 +776,7 @@ def audit_output(source: Path, output: Path) -> dict[str, Any]:
                 "existing shape prefix changed" in error for error in errors
             ),
             "source_image_symlinks_valid": not any("symlink" in error for error in errors),
+            "flat_labelme_review_present": flat_review.is_dir(),
         },
         "errors": errors,
     }
@@ -735,6 +795,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     output = args.output.resolve()
     if not source.is_dir():
         raise FileNotFoundError(f"Source directory not found: {source}")
+    if args.prepare_review_only:
+        if not output.is_dir():
+            raise FileNotFoundError(f"Output directory not found: {output}")
+        return prepare_labelme_review(source, output)
     if args.audit_only:
         if not output.is_dir():
             raise FileNotFoundError(f"Output directory not found for audit: {output}")
@@ -1023,6 +1087,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             encoding="utf-8",
         )
         staging.rename(output)
+        prepare_labelme_review(source, output)
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return summary
     except Exception:
@@ -1051,6 +1116,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Audit an existing output without loading the model or running inference",
     )
+    parser.add_argument(
+        "--prepare-review-only",
+        action="store_true",
+        help="Build a flat LabelMe browsing directory from an existing output",
+    )
     args = parser.parse_args()
     if args.limit is not None and args.limit <= 0:
         parser.error("--limit must be positive")
@@ -1058,8 +1128,9 @@ def parse_args() -> argparse.Namespace:
         parser.error("imgsz/max-det must be positive and preview-limit non-negative")
     if not 0 <= args.predict_conf <= args.candidate_conf <= 1:
         parser.error("Require 0 <= predict-conf <= candidate-conf <= 1")
-    if args.apply and args.audit_only:
-        parser.error("--apply and --audit-only are mutually exclusive")
+    modes = sum((args.apply, args.audit_only, args.prepare_review_only))
+    if modes > 1:
+        parser.error("--apply, --audit-only and --prepare-review-only are mutually exclusive")
     return args
 
 
