@@ -156,6 +156,8 @@
   - 用户要求进一步全量统计第二批图像的分辨率、纵横比和黑边情况。
   - 决定在既有LabelMe结构审计基础上增加像素外观审计，原始数据保持只读。
   - 计划同时输出逐图CSV和汇总JSON，并用极端样本视觉复核自动黑边判定。
+  - 检查本机图像能力：无Pillow/OpenCV/NumPy，但有FFmpeg；决定用FFmpeg原生解码并缩小为灰度PGM，再用标准库统计边缘像素。
+  - 首次阈值校准误选AppleDouble伪PNG并被FFmpeg拒绝，已将`._*`过滤加入正式实现要求。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
