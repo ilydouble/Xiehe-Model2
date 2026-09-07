@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Phase 12
+Phase 13
 
 ## Phases
 
@@ -73,15 +73,15 @@ Phase 12
 - **Status:** complete
 
 ### Phase 12: 生成联合骨盆数据集
-- [ ] 生成 `datasets/yolo_pelvis_3kpt_all`
-- [ ] 输出data.yaml、manifest、排除清单和转换报告
-- [ ] 校验图像/标签、关键点和患者split
-- **Status:** in_progress
+- [x] 生成 `datasets/yolo_pelvis_3kpt_all`
+- [x] 输出data.yaml、manifest、排除清单和转换报告
+- [x] 校验图像/标签、关键点和患者split
+- **Status:** complete
 
 ### Phase 13: 骨盆模型AutoDL训练入口
 - [ ] 新增三关键点训练脚本与dry-run校验
 - [ ] 编写在23类脊柱模型之后训练的操作说明
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 14: 最终验证与交付
 - [ ] 复跑转换器/训练脚本测试和真实数据dry-run

@@ -122,6 +122,14 @@
   - 首轮测试暴露Python 3.13动态导入dataclass模块需先注册`sys.modules`，已修复测试夹具并保留错误记录。
   - 首次真实生成发现旧批只纳入329例；追查确认5例同时含合法S1 line与辅助S1 circle，规则已修正为采用唯一合法line，预计最终总量由1,023增至1,028。
 
+### Phase 12: 生成联合骨盆数据集
+- **Status:** complete
+- Actions taken:
+  - 从旧批384对和新批706对LabelMe源文件生成 `datasets/yolo_pelvis_3kpt_all`。
+  - 纳入旧批334张、新批694张，共1,028张图像、1,023个患者组；按患者拆为824 train、102 val、102 test。
+  - 保留569个直接CFH和459个FH-1/FH-2中点CFH，移除1张旧批完全重复图像。
+  - 独立全量检查图片/标签配对、14字段格式、类别、归一化坐标、3点可见性和患者split，错误数为0。
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
