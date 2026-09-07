@@ -146,6 +146,7 @@
   - 检查Python语法、Git空白错误和数据忽略规则，均通过；3.7 GiB数据目录不会进入Git。
   - 确认用户已有CFH训练脚本修改和未跟踪 `analysis/` 产物未被触碰或提交。
   - 用户指出训练目录职责后，将骨盆三关键点训练入口从脊柱目录移至 `4-model_training_CFH`，同步修正测试、说明和独立依赖文件；脊柱23类入口继续保留在 `3-model_training`。
+  - 进一步参考原CFH训练入口，新增骨盆专用shell启动器，提供quick/standard/best预设、脊柱权重迁移、断点续训和dry-run，同时使用脚本绝对路径避免工作目录差异。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |

@@ -36,33 +36,34 @@ python3 scripts/convert_combined_pelvis_pose.py \
 
 ## AutoDL 训练
 
+训练结构与原CFH模块保持一致：`.sh` 负责常用预设和环境检查，Python脚本负责数据全量校验与训练。
 在项目根目录安装与检查：
 
 ```bash
 pip install -r 4-model_training_CFH/requirements.txt
 
-python3 4-model_training_CFH/train_pelvis_pose_3kpt.py --dry-run
+./4-model_training_CFH/train_pelvis_pose_3kpt.sh --standard --dry-run
 ```
 
-如果先完成了 23 类侧面脊柱模型训练，推荐用其 `best.pt` 初始化。这会迁移已经学到的侧位片
-特征；由于本任务是 1 类、3 关键点，Ultralytics 会按新数据配置重建并训练新的 Pose head：
+常用预设为 `--quick`、`--standard` 和 `--best`。如果先完成了 23 类侧面脊柱模型训练，推荐使用
+`--spine-transfer`。它会迁移已经学到的侧位片特征；由于本任务是1类、3关键点，Ultralytics
+会按新数据配置重建并训练新的 Pose head：
 
 ```bash
-python3 4-model_training_CFH/train_pelvis_pose_3kpt.py \
-  --model runs/pose/yolo11m_lateral_23cls/weights/best.pt \
+./4-model_training_CFH/train_pelvis_pose_3kpt.sh \
+  --spine-transfer \
   --device 0 \
-  --imgsz 1280 \
-  --batch 4 \
-  --epochs 200
+  --batch 4
 ```
 
-如果不使用上一阶段权重，省略 `--model` 即默认从官方 `yolo11m-pose.pt` 初始化。显存不足时，
-优先把 `--batch 4` 改为 `--batch 2`；图像较高且关键点小，不建议先降低 `imgsz`。
+如果不使用上一阶段权重，执行 `--standard` 即从官方 `yolo11m-pose.pt` 初始化。显存不足时，
+增加 `--batch 2`；图像较高且关键点小，不建议先降低 `imgsz`。所有参数仍可直接传给Python入口做
+更细的控制。
 
 断点续训：
 
 ```bash
-python3 4-model_training_CFH/train_pelvis_pose_3kpt.py --resume
+./4-model_training_CFH/train_pelvis_pose_3kpt.sh --resume
 ```
 
 默认输出目录为 `runs/pose/yolo11m_pelvis_3kpt_all/`，最终权重位于
