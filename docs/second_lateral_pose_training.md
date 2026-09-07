@@ -27,6 +27,7 @@ T13在本批没有样本，因此不属于当前23类模型。S1是两点线段�
 ```text
 <项目根目录>/datasets/yolo_lateral_20260903_23cls/data.yaml
 <项目根目录>/3-model_training/train_lateral_pose_23.py
+<项目根目录>/3-model_training/train_lateral_pose_23.sh
 ```
 
 推荐把项目和数据放在 `/root/autodl-tmp/`，避免系统盘空间不足。
@@ -42,7 +43,7 @@ python3 -m pip install -r 3-model_training/requirements.txt
 先做不启动GPU的完整数据检查：
 
 ```bash
-python3 3-model_training/train_lateral_pose_23.py --dry-run
+./3-model_training/train_lateral_pose_23.sh --standard --dry-run
 ```
 
 检查结果应显示698张图像和16,032个椎体对象。
@@ -52,24 +53,13 @@ python3 3-model_training/train_lateral_pose_23.py --dry-run
 从官方YOLO11m Pose权重开始：
 
 ```bash
-python3 3-model_training/train_lateral_pose_23.py \
-  --model yolo11m-pose.pt \
-  --device 0 \
-  --imgsz 1280 \
-  --batch 4 \
-  --epochs 200
+./3-model_training/train_lateral_pose_23.sh --standard --device 0
 ```
 
 如果已把旧18类模型上传到服务器，可以利用其脊柱特征做迁移学习：
 
 ```bash
-python3 3-model_training/train_lateral_pose_23.py \
-  --model 6-app_backend/models/corner_model.pt \
-  --device 0 \
-  --imgsz 1280 \
-  --batch 4 \
-  --epochs 200 \
-  --name yolo11_lateral_23cls_from_old
+./3-model_training/train_lateral_pose_23.sh --old-transfer --device 0
 ```
 
 旧权重只能用于初始化；由于类别从18变为23，新的检测/Pose输出头必须重新训练。
@@ -83,13 +73,13 @@ python3 3-model_training/train_lateral_pose_23.py \
 默认实验的断点续训：
 
 ```bash
-python3 3-model_training/train_lateral_pose_23.py --resume
+./3-model_training/train_lateral_pose_23.sh --resume
 ```
 
 指定其他检查点：
 
 ```bash
-python3 3-model_training/train_lateral_pose_23.py \
+./3-model_training/train_lateral_pose_23.sh \
   --resume runs/pose/yolo11m_lateral_23cls/weights/last.pt
 ```
 
