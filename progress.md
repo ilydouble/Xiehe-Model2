@@ -150,7 +150,7 @@
   - 同步为第二批23类脊柱模型新增同风格shell启动器，提供三档预设、旧18类corner权重迁移、续训和dry-run，使两个训练目录的使用方式一致。
 
 ### Phase 15: 第二批图像规格与黑边统计实现
-- **Status:** in_progress
+- **Status:** complete
 - **Started:** 2026-09-07
 - Actions taken:
   - 用户要求进一步全量统计第二批图像的分辨率、纵横比和黑边情况。
@@ -158,6 +158,8 @@
   - 计划同时输出逐图CSV和汇总JSON，并用极端样本视觉复核自动黑边判定。
   - 检查本机图像能力：无Pillow/OpenCV/NumPy，但有FFmpeg；决定用FFmpeg原生解码并缩小为灰度PGM，再用标准库统计边缘像素。
   - 首次阈值校准误选AppleDouble伪PNG并被FFmpeg拒绝，已将`._*`过滤加入正式实现要求。
+  - 校准12个来源代表样本后，固定近黑阈值为灰度≤5、每行/列近黑像素≥98%；单侧占比≥1%定义为明显黑边。
+  - 新增全量图像外观统计脚本和4项测试，覆盖PNG头、PGM首像素边界、黑边计算、分位数与汇总逻辑，全部通过。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
