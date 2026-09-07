@@ -102,10 +102,10 @@ Phase 17
 - **Status:** complete
 
 ### Phase 17: 分析报告与训练建议
-- [ ] 编写分辨率、比例、黑边及域偏差报告
-- [ ] 给出resize/letterbox、裁边和增强建议
-- [ ] 复跑测试、提交代码和文档并交付
-- **Status:** in_progress
+- [x] 编写分辨率、比例、黑边及域偏差报告
+- [x] 给出resize/letterbox、裁边和增强建议
+- [x] 复跑测试、提交代码和文档并交付
+- **Status:** complete
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
