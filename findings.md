@@ -39,6 +39,9 @@
 - 仓库训练目录职责明确：`3-model_training` 放脊柱椎体Pose，`4-model_training_CFH` 放CFH/骨盆相关训练；联合骨盆三关键点脚本应位于后者。
 
 ## Research Findings
+- 三关键点现有对象框很小：train中bbox归一化宽/高中位数约0.117/0.167，面积中位数约2.01%。若直接照搬正面20%外扩，ROI面积中位数仅约3.93%，对骨盆任务过紧且与正面ROI尺度不可比。
+- 正面六点和Corner的真实ROI面积中位数分别约52.56%和53.26%。为让侧面三点ROI保留相近上下文，三点任务应使用更大的相对边距；以对象框每侧外扩约2倍为起点，理论ROI面积中位数约49.13%，再通过真实边界裁剪统计校准。
+- 侧面train来源保持为旧批268张、新批556张；两批原始画布宽高比中位数约0.560和0.353。ROI生成必须对两批使用相同几何规则，不能按来源设置不同裁剪策略，否则会强化来源特征。
 - 现有 `datasets/yolo_pelvis_3kpt_all/data.yaml` 仅引用原始 `images/train|val|test`；训练校验器假设三个split都位于同一数据根目录，若增加独立ROI目录，需要扩展为可解析YAML中多train路径并同时校验派生manifest。
 - 联合数据集manifest逐图保存 `batch、patient_id、group_id、split、image、label`，可以把每个ROI精确追溯到原train记录，并独立证明其源患者未出现在val/test。
 - 当前环境没有Pillow，但FFmpeg可用且已用于图像全量扫描；ROI生成器可用标准库解析PNG尺寸、用FFmpeg无损重编码裁剪，避免为了本地构建新增图像库依赖。
