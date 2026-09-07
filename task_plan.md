@@ -84,10 +84,10 @@ Phase 14
 - **Status:** complete
 
 ### Phase 14: 最终验证与交付
-- [ ] 复跑转换器/训练脚本测试和真实数据dry-run
-- [ ] 提交全部代码、文档与计划变更
-- [ ] 交付数据路径和AutoDL命令
-- **Status:** in_progress
+- [x] 复跑转换器/训练脚本测试和真实数据dry-run
+- [x] 提交全部代码、文档与计划变更
+- [x] 交付数据路径和AutoDL命令
+- **Status:** complete
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
