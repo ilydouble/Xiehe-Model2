@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Phase 11
+Phase 12
 
 ## Phases
 
@@ -66,17 +66,17 @@ Phase 11
 - **Status:** complete
 
 ### Phase 11: 联合骨盆数据规范与转换器
-- [ ] 固定三关键点定义、边界框和水平翻转规则
-- [ ] 实现旧批直接CFH与新批FH中点的统一转换
-- [ ] 实现跨批去重、批次内患者拆分和来源追溯
-- [ ] 补充自动测试
-- **Status:** in_progress
+- [x] 固定三关键点定义、边界框和水平翻转规则
+- [x] 实现旧批直接CFH与新批FH中点的统一转换
+- [x] 实现跨批去重、批次内患者拆分和来源追溯
+- [x] 补充自动测试
+- **Status:** complete
 
 ### Phase 12: 生成联合骨盆数据集
 - [ ] 生成 `datasets/yolo_pelvis_3kpt_all`
 - [ ] 输出data.yaml、manifest、排除清单和转换报告
 - [ ] 校验图像/标签、关键点和患者split
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 13: 骨盆模型AutoDL训练入口
 - [ ] 新增三关键点训练脚本与dry-run校验
@@ -121,6 +121,7 @@ Phase 11
 | zsh 中使用特殊变量 `path` 破坏 PATH，且 awk 使用保留名 `split` | 1 | 不复用该管道，改用已写入临时文件的 Python 只读检查脚本 |
 | 股骨头分布脚本读取到 `._*.json` 导致 UTF-8 解码失败 | 1 | 明确排除 AppleDouble 文件后重跑 |
 | `xargs jq` 抽样因下游head提前退出收到SIGPIPE | 1 | 样本已成功取得；后续使用不提前关闭上游的抽样方式 |
+| Python 3.13动态导入含dataclass模块时测试未注册`sys.modules` | 1 | 在测试夹具执行模块前按spec名称注册，转换代码无需改动 |
 
 ## Notes
 - 不纳入或覆盖工作区已有的无关修改。

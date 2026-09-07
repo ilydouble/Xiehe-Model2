@@ -118,6 +118,8 @@
   - 复核旧批335例和新批694例具备统一三关键点所需的完整标注，原始候选合计1,029例。
   - 固定联合目标为单个pelvis对象与 `CFH、S1图像左端、S1图像右端` 三关键点。
   - 核对两批严格同stem配对和代表性几何，确认旧384对、新706对，目标point/line结构可统一。
+  - 新增联合骨盆LabelMe→YOLO Pose转换器及覆盖直接CFH、FH中点、S1端点排序、去重和端到端转换的测试。
+  - 首轮测试暴露Python 3.13动态导入dataclass模块需先注册`sys.modules`，已修复测试夹具并保留错误记录。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
