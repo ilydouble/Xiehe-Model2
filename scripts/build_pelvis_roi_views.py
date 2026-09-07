@@ -321,6 +321,117 @@ def summarize(records: Sequence[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def audit_leakage(
+    dataset_root: Path, output_root: Path, *, write_report: bool = False
+) -> dict[str, Any]:
+    """Audit patient lineage and exact-image leakage across immutable splits."""
+    dataset_root, output_root = dataset_root.resolve(), output_root.resolve()
+    with (dataset_root / "manifest.csv").open("r", encoding="utf-8", newline="") as handle:
+        source_rows = list(csv.DictReader(handle))
+    with (output_root / "manifest.csv").open("r", encoding="utf-8", newline="") as handle:
+        roi_rows = list(csv.DictReader(handle))
+
+    errors: list[str] = []
+    source_by_image: dict[str, dict[str, str]] = {}
+    source_groups: dict[str, set[str]] = {}
+    source_hash_splits: dict[str, set[str]] = {}
+    source_hashes_by_split: dict[str, set[str]] = {split: set() for split in SPLITS}
+    for row in source_rows:
+        image_value = (row.get("image") or "").strip()
+        split = (row.get("split") or "").strip()
+        group_id = (row.get("group_id") or "").strip()
+        if split not in SPLITS or not image_value or not group_id:
+            errors.append(f"invalid source row: {image_value}")
+            continue
+        if image_value in source_by_image:
+            errors.append(f"duplicate source image manifest key: {image_value}")
+            continue
+        image_path = dataset_root / image_value
+        if not image_path.is_file():
+            errors.append(f"missing source image: {image_value}")
+            continue
+        digest = sha256_file(image_path)
+        source_by_image[image_value] = row
+        source_groups.setdefault(group_id, set()).add(split)
+        source_hash_splits.setdefault(digest, set()).add(split)
+        source_hashes_by_split[split].add(digest)
+
+    for group_id, splits in source_groups.items():
+        if len(splits) > 1:
+            errors.append(f"source patient crosses splits: {group_id}:{sorted(splits)}")
+    cross_split_source_hashes = {
+        digest: splits for digest, splits in source_hash_splits.items() if len(splits) > 1
+    }
+    if cross_split_source_hashes:
+        errors.append(f"source exact images cross splits: {len(cross_split_source_hashes)}")
+
+    roi_groups: set[str] = set()
+    roi_output_hashes: set[str] = set()
+    for row in roi_rows:
+        source_image = (row.get("source_image") or "").strip()
+        source_split = (row.get("source_split") or "").strip()
+        group_id = (row.get("group_id") or "").strip()
+        output_image = (row.get("output_image") or "").strip()
+        output_label = (row.get("output_label") or "").strip()
+        source = source_by_image.get(source_image)
+        if source_split != "train":
+            errors.append(f"ROI has non-train source_split: {output_image}:{source_split}")
+        if source is None or source.get("split") != "train":
+            errors.append(f"ROI source is not in source train: {source_image}")
+        elif source.get("group_id") != group_id:
+            errors.append(f"ROI/source group mismatch: {output_image}")
+        source_path = dataset_root / source_image
+        image_path, label_path = output_root / output_image, output_root / output_label
+        if not source_path.is_file() or sha256_file(source_path) != row.get("source_image_sha256"):
+            errors.append(f"ROI source hash mismatch: {source_image}")
+        if not image_path.is_file() or sha256_file(image_path) != row.get("output_image_sha256"):
+            errors.append(f"ROI output image hash mismatch: {output_image}")
+        else:
+            roi_output_hashes.add(row["output_image_sha256"])
+        if not label_path.is_file() or sha256_file(label_path) != row.get("output_label_sha256"):
+            errors.append(f"ROI output label hash mismatch: {output_label}")
+        roi_groups.add(group_id)
+
+    non_train_groups = sorted(
+        group for group in roi_groups if source_groups.get(group, set()) != {"train"}
+    )
+    if non_train_groups:
+        errors.append(f"ROI groups are not train-only: {non_train_groups[:5]}")
+    exact_roi_vs_holdout = roi_output_hashes & (
+        source_hashes_by_split["val"] | source_hashes_by_split["test"]
+    )
+    if exact_roi_vs_holdout:
+        errors.append(f"ROI images exactly match holdout originals: {len(exact_roi_vs_holdout)}")
+    for split in ("val", "test"):
+        if (output_root / f"images/{split}").exists() or (output_root / f"labels/{split}").exists():
+            errors.append(f"ROI output contains forbidden {split} directory")
+
+    report = {
+        "schema_version": 1,
+        "status": "passed" if not errors else "failed",
+        "source_dataset": str(dataset_root),
+        "roi_dataset": str(output_root),
+        "counts": {
+            "source_images": len(source_rows),
+            "source_patient_groups": len(source_groups),
+            "roi_images": len(roi_rows),
+            "roi_patient_groups": len(roi_groups),
+            "source_cross_split_patient_groups": sum(
+                len(splits) > 1 for splits in source_groups.values()
+            ),
+            "source_cross_split_exact_image_groups": len(cross_split_source_hashes),
+            "roi_non_train_patient_groups": len(non_train_groups),
+            "roi_exact_matches_to_val_test": len(exact_roi_vs_holdout),
+        },
+        "errors": errors,
+    }
+    if write_report:
+        (output_root / "leakage_audit.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    return report
+
+
 def build_dataset(
     dataset_root: Path,
     output_root: Path,
@@ -448,17 +559,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--ffmpeg", default=shutil.which("ffmpeg") or "ffmpeg")
     parser.add_argument("--apply", action="store_true", help="write the derived dataset")
+    parser.add_argument(
+        "--audit-only", action="store_true",
+        help="audit an existing ROI dataset and write leakage_audit.json",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    result = build_dataset(
-        args.dataset_root, args.output_root,
-        seed=args.seed, margin=args.margin, shift_jitter=args.shift_jitter,
-        scale_jitter=args.scale_jitter, workers=args.workers,
-        ffmpeg=args.ffmpeg, apply=args.apply,
-    )
+    if args.audit_only:
+        result = audit_leakage(args.dataset_root, args.output_root, write_report=True)
+    else:
+        result = build_dataset(
+            args.dataset_root, args.output_root,
+            seed=args.seed, margin=args.margin, shift_jitter=args.shift_jitter,
+            scale_jitter=args.scale_jitter, workers=args.workers,
+            ffmpeg=args.ffmpeg, apply=args.apply,
+        )
+        if args.apply:
+            result["leakage_audit"] = audit_leakage(
+                args.dataset_root, args.output_root, write_report=True
+            )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

@@ -256,6 +256,8 @@
 - Actions taken:
   - 准备按源manifest、ROI manifest和跨split图像哈希独立复核患者与同源图像泄漏。
   - 首次追加审计功能时文档补丁锚点不匹配，补丁整体安全拒绝且没有产生半成品；改为拆分应用。
+  - 新增可重复执行的 `--audit-only`：检查源患者跨split、源图跨split精确重复、ROI源split/患者/哈希、ROI与val/test精确相同以及禁建holdout派生目录。
+  - 10项相关测试通过；真实全量审计状态passed，六项关键泄漏计数全部为0，报告写入ROI目录 `leakage_audit.json`。
 
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|

@@ -112,6 +112,19 @@ class PelvisRoiBuilderTests(unittest.TestCase):
             self.assertEqual(rows[0]["group_id"], "old:P1")
             parsed = json.loads((output / "build_report.json").read_text(encoding="utf-8"))
             self.assertEqual(parsed["leakage_contract"]["derived_splits"], ["train"])
+            audit = builder.audit_leakage(source, output)
+            self.assertEqual(audit["status"], "passed")
+            self.assertEqual(audit["counts"]["roi_non_train_patient_groups"], 0)
+            self.assertEqual(audit["counts"]["roi_exact_matches_to_val_test"], 0)
+
+            rows[0]["group_id"] = "new:P2"
+            with (output / "manifest.csv").open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+                writer.writeheader()
+                writer.writerows(rows)
+            failed = builder.audit_leakage(source, output)
+            self.assertEqual(failed["status"], "failed")
+            self.assertGreater(failed["counts"]["roi_non_train_patient_groups"], 0)
 
     def test_existing_output_is_not_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:

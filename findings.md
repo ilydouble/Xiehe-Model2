@@ -39,6 +39,8 @@
 - 仓库训练目录职责明确：`3-model_training` 放脊柱椎体Pose，`4-model_training_CFH` 放CFH/骨盆相关训练；联合骨盆三关键点脚本应位于后者。
 
 ## Research Findings
+- 最终独立泄漏审计通过：源数据1,028张/1,023患者组，ROI 824张/819患者组；源患者跨split=0、源图跨split精确重复=0、ROI非train患者=0、ROI与val/test原图精确相同=0，错误列表为空。
+- `scripts/build_pelvis_roi_views.py --audit-only` 会重新计算全部源/ROI哈希并写 `datasets/yolo_pelvis_3kpt_roi_views/leakage_audit.json`，可在上传AutoDL后再次运行确认传输未破坏数据边界。
 - 新混合YAML训练规模为train 1,648视图（824原图+824 ROI）、val 102原图、test 102原图；训练校验器从源manifest确认总患者仍为1,023，ROI仅对应819个train患者。
 - 三点训练shell默认使用ROI混合YAML，仍可通过 `--full-frame-only` 回到824张原图train以开展同split A/B；两条路径共享完全相同的102 val和102 test。
 - 正式ROI数据集已生成，大小约1.5GB：824张train派生图与824份标签一一配对，819个患者组，来源保持旧268/新556；val/test派生目录不存在。

@@ -57,6 +57,15 @@ python3 scripts/build_pelvis_roi_views.py --apply
 第一条是dry-run，第二条才写入派生目录。生成器只读取现有train split，使用临时目录构建并在成功后
 原子落盘；manifest记录患者、源图、裁剪框及源/输出SHA-256。
 
+可随时重新执行独立泄漏审计：
+
+```bash
+python3 scripts/build_pelvis_roi_views.py --audit-only
+```
+
+它会检查患者是否跨split、原始图像是否跨split精确重复、每个ROI是否确实来自train、ROI哈希是否与
+manifest一致，以及ROI是否与val/test原图完全相同；结果写入ROI目录的 `leakage_audit.json`。
+
 ## AutoDL 训练
 
 训练结构与原CFH模块保持一致：`.sh` 负责常用预设和环境检查，Python脚本负责数据全量校验与训练。
