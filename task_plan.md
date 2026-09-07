@@ -1,10 +1,10 @@
-# Task Plan: 侧面 LabelMe 数据集分析与第二批训练集构建
+# Task Plan: 侧面脊柱与骨盆关键点数据集构建
 
 ## Goal
-完成 `/Volumes/E/spine_data/20260903-侧面数据第二批` 的质量分析，并将其构建为可上传 AutoDL 训练的 23 类 YOLO Pose 数据集，交付可复现的转换和训练脚本。
+完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Complete
+Phase 11
 
 ## Phases
 
@@ -65,6 +65,30 @@ Complete
 - [x] 提交当前任务全部代码/文档变更并给出 AutoDL 操作步骤
 - **Status:** complete
 
+### Phase 11: 联合骨盆数据规范与转换器
+- [ ] 固定三关键点定义、边界框和水平翻转规则
+- [ ] 实现旧批直接CFH与新批FH中点的统一转换
+- [ ] 实现跨批去重、批次内患者拆分和来源追溯
+- [ ] 补充自动测试
+- **Status:** in_progress
+
+### Phase 12: 生成联合骨盆数据集
+- [ ] 生成 `datasets/yolo_pelvis_3kpt_all`
+- [ ] 输出data.yaml、manifest、排除清单和转换报告
+- [ ] 校验图像/标签、关键点和患者split
+- **Status:** pending
+
+### Phase 13: 骨盆模型AutoDL训练入口
+- [ ] 新增三关键点训练脚本与dry-run校验
+- [ ] 编写在23类脊柱模型之后训练的操作说明
+- **Status:** pending
+
+### Phase 14: 最终验证与交付
+- [ ] 复跑转换器/训练脚本测试和真实数据dry-run
+- [ ] 提交全部代码、文档与计划变更
+- [ ] 交付数据路径和AutoDL命令
+- **Status:** pending
+
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
 2. 是否存在缺失配对、损坏文件、坐标越界、空标注、重复数据或其他质量风险？
@@ -79,6 +103,9 @@ Complete
 | 先全量自动统计，再做分层抽样视觉检查 | 同时覆盖规模性问题与肉眼可见的标注质量问题 |
 | 第二批主模型使用 23 类椎体 Pose | 本批有 C2-C7、T1-T12、L1-L5 的四点 polygon；T13 无样本，S1/CFH 标注结构不同 |
 | 不把未标注类别的旧批直接混入训练 | YOLO 会将可见但未标注目标当成背景，损害 C2-C6 学习 |
+| 骨盆模型统一为一个pelvis对象、三个关键点 | CFH为股骨头综合中心，S1保留两端点才能计算中点和终板角度 |
+| 新批FH-1/FH-2取中点转换为CFH | 与直接CFH的分布一致，且旧批C1/C2圆心中点验证支持该定义 |
+| 旧批只直接接收S1 line | polygon/circle语义与端点规则不够明确，先隔离而非猜测转换 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

@@ -110,6 +110,14 @@
   - 最终复跑真实数据dry-run与交付文件检查，确认698张图像、697名患者和8例隔离记录完整。
   - 执行Git空白错误检查并确认未触碰用户已有的 `4-model_training_CFH/train_cfh_detection.sh` 修改及未跟踪分析产物。
 
+### Phase 11: 联合骨盆数据规范与转换器
+- **Status:** in_progress
+- **Started:** 2026-09-07
+- Actions taken:
+  - 用户提供第一批新位置 `/Volumes/E/spine_data/LAT202511`，已确认目录可访问。
+  - 复核旧批335例和新批694例具备统一三关键点所需的完整标注，原始候选合计1,029例。
+  - 固定联合目标为单个pelvis对象与 `CFH、S1图像左端、S1图像右端` 三关键点。
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
