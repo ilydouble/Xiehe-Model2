@@ -130,6 +130,14 @@
   - 保留569个直接CFH和459个FH-1/FH-2中点CFH，移除1张旧批完全重复图像。
   - 独立全量检查图片/标签配对、14字段格式、类别、归一化坐标、3点可见性和患者split，错误数为0。
 
+### Phase 13: 骨盆模型AutoDL训练入口
+- **Status:** complete
+- Actions taken:
+  - 新增1类3关键点YOLO11 Pose训练入口，默认1280、batch 4、200 epochs，使用保守医学影像增强和正确水平翻转。
+  - 支持官方 `yolo11m-pose.pt` 或上一阶段23类侧面模型 `best.pt` 初始化，以及断点续训、设备、batch、imgsz等参数。
+  - 训练前全量校验14字段标签、三点可见性、图片配对、manifest计数及患者split。
+  - 新增4项训练脚本测试和AutoDL说明；真实数据dry-run正确识别1,028张图像、1,023个患者组。
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
