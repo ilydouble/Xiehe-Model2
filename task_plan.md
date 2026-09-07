@@ -4,7 +4,7 @@
 完成 `/Volumes/E/spine_data/20260903-侧面数据第二批` 的质量分析，并将其构建为可上传 AutoDL 训练的 23 类 YOLO Pose 数据集，交付可复现的转换和训练脚本。
 
 ## Current Phase
-Phase 8
+Phase 9
 
 ## Phases
 
@@ -49,15 +49,15 @@ Phase 8
 - **Status:** complete
 
 ### Phase 8: 生成第二批 YOLO 数据集
-- [ ] 按患者分组生成 train/val/test
-- [ ] 复制图像并写入 YOLO Pose 标签、data.yaml 和清单
-- [ ] 输出转换统计与人工复核清单
-- **Status:** in_progress
+- [x] 按患者分组生成 train/val/test
+- [x] 复制图像并写入 YOLO Pose 标签、data.yaml 和清单
+- [x] 输出转换统计与人工复核清单
+- **Status:** complete
 
 ### Phase 9: AutoDL 训练入口
 - [ ] 新增适用于新数据集的训练脚本和服务器使用说明
 - [ ] 支持预训练权重、设备、batch、imgsz 和断点续训参数
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 10: 完整验证与交付
 - [ ] 校验图像/标签配对、类别范围、关键点格式及坐标范围
