@@ -243,9 +243,18 @@
   - 派生目录只存在 `images/train` 和 `labels/train`，没有val/test目录；逐图复核PNG尺寸、源/输出哈希、14字段、类别、坐标和三点可见性，错误数0。
 
 ### Phase 24: 训练入口与AutoDL说明
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 准备新增原图+ROI多train目录YAML，并扩展训练前校验以理解派生manifest和1648个训练视图。
+  - 首轮真实混合dry-run正确识别train 1648、val 102、test 102以及819个ROI患者；新增混合单元测试因测试夹具未创建嵌套根目录失败，已定位为测试准备问题。
+  - 修复测试夹具后10项相关测试通过；新增混合YAML，训练Python校验器支持多个train目录及ROI manifest，shell和Python默认改为ROI混合入口。
+  - 保留 `--full-frame-only` 作为公平原图基线；混合与原图两条真实dry-run分别识别1648/102/102和824/102/102，均未启动训练。
+  - 更新AutoDL说明，明确需上传原始联合数据集与1.5GB ROI派生目录，并说明派生视图不等于新增病例。
+
+### Phase 25: 独立泄漏审计与最终交付
+- **Status:** in_progress
+- Actions taken:
+  - 准备按源manifest、ROI manifest和跨split图像哈希独立复核患者与同源图像泄漏。
 
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|

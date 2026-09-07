@@ -1,0 +1,16 @@
+# Lateral pelvis three-keypoint Pose: original train images + train-only ROI views.
+# Validation and test remain patient-isolated original images.
+
+path: ../datasets
+train:
+  - yolo_pelvis_3kpt_all/images/train
+  - yolo_pelvis_3kpt_roi_views/images/train
+val: yolo_pelvis_3kpt_all/images/val
+test: yolo_pelvis_3kpt_all/images/test
+
+nc: 1
+names:
+  0: pelvis
+
+kpt_shape: [3, 3]
+flip_idx: [0, 2, 1]

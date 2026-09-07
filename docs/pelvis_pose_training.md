@@ -21,8 +21,21 @@
 - 569 个直接 CFH、459 个 FH 双点中点；
 - 每张图一个对象，每行 14 个 YOLO Pose 字段。
 
+另外已经从824张train原图生成 `datasets/yolo_pelvis_3kpt_roi_views`：
+
+- 824张train-only ROI和824份同步换算后的三关键点标签；
+- 旧批268张、新批556张，共819个train患者组；
+- ROI面积占原图中位数约50.06%，保留骨盆、腰骶结构和较大上下文；
+- 没有val/test派生目录，验证和测试始终使用原图。
+
+默认训练配置为 `4-model_training_CFH/pelvis_3kpt_roi_mixed.yaml`。它同时读取824张原始train和
+824张ROI，合计1,648个训练视图，但仍然只是819个train患者组，不是新增了824个独立病例。
+
 `datasets/` 被 Git 忽略，因此拉取仓库代码不会自动得到图像。连接 AutoDL 后，需把整个
-`datasets/yolo_pelvis_3kpt_all` 目录单独上传到服务器项目的 `datasets/` 下。
+以下两个目录都要上传到服务器项目的 `datasets/` 下：
+
+- `datasets/yolo_pelvis_3kpt_all`
+- `datasets/yolo_pelvis_3kpt_roi_views`
 
 若需在另一台本地机器重新生成：
 
@@ -33,6 +46,16 @@ python3 scripts/convert_combined_pelvis_pose.py \
 ```
 
 转换器不会改写原始数据，且若输出目录已存在会直接停止，避免覆盖。
+
+如需重新生成ROI，先完成原始联合数据集，再运行：
+
+```bash
+python3 scripts/build_pelvis_roi_views.py
+python3 scripts/build_pelvis_roi_views.py --apply
+```
+
+第一条是dry-run，第二条才写入派生目录。生成器只读取现有train split，使用临时目录构建并在成功后
+原子落盘；manifest记录患者、源图、裁剪框及源/输出SHA-256。
 
 ## AutoDL 训练
 
@@ -60,11 +83,19 @@ pip install -r 4-model_training_CFH/requirements.txt
 增加 `--batch 2`；图像较高且关键点小，不建议先降低 `imgsz`。所有参数仍可直接传给Python入口做
 更细的控制。
 
+默认所有预设均使用原图+ROI混合train。若要做公平的原图基线，可显式运行：
+
+```bash
+./4-model_training_CFH/train_pelvis_pose_3kpt.sh --standard --full-frame-only
+```
+
+无论哪种训练入口，val/test都是患者隔离后的102/102张原图。GT生成的ROI不会进入验证或测试。
+
 断点续训：
 
 ```bash
 ./4-model_training_CFH/train_pelvis_pose_3kpt.sh --resume
 ```
 
-默认输出目录为 `runs/pose/yolo11m_pelvis_3kpt_all/`，最终权重位于
+默认输出目录为 `runs/pose/yolo11m_pelvis_3kpt_roi_mixed/`，最终权重位于
 `weights/best.pt`。训练前脚本会自动全量检查数据格式、图片标签配对和患者 split。

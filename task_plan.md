@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Phase 24
+Phase 25
 
 ## Phases
 
@@ -144,16 +144,16 @@ Phase 24
 - **Status:** complete
 
 ### Phase 24: 训练入口与AutoDL说明
-- [ ] 让三关键点训练脚本支持原图或ROI混合数据入口
-- [ ] 更新shell启动器与AutoDL操作说明
-- [ ] 真实数据dry-run验证混合规模和val/test边界
-- **Status:** in_progress
+- [x] 让三关键点训练脚本支持原图或ROI混合数据入口
+- [x] 更新shell启动器与AutoDL操作说明
+- [x] 真实数据dry-run验证混合规模和val/test边界
+- **Status:** complete
 
 ### Phase 25: 独立泄漏审计与最终交付
 - [ ] 检查患者、原图哈希、派生来源均无跨split泄漏
 - [ ] 复跑相关测试和数据验收
 - [ ] 提交本轮全部代码与文档变更并交付
-- **Status:** pending
+- **Status:** in_progress
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
@@ -192,6 +192,7 @@ Phase 24
 | 黑边阈值校准首次读取到`._*.png`导致FFmpeg解码失败 | 1 | 明确过滤AppleDouble辅助文件后再选取真实PNG样本 |
 | 搜索本机Ultralytics源码时zsh未匹配系统路径glob | 1 | 已确认当前Python无Ultralytics；不重复该glob，训练YAML按已有已验证的正面多目录模式生成 |
 | 真实824张ROI dry-run在标签变换时报告bbox y边界越界 | 1 | 单元测试通过但真实标签存在边界/舍入特例；正在定位具体样本并收紧裁剪包含与数值容差规则 |
+| 混合YAML单元测试的嵌套临时数据根目录尚未创建 | 1 | 真实混合数据dry-run已通过；测试夹具补充创建根目录后重跑，不修改生产校验逻辑 |
 
 ## Notes
 - 不纳入或覆盖工作区已有的无关修改。

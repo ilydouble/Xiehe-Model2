@@ -22,6 +22,7 @@ def valid_line(class_id: int = 0) -> str:
 
 class TrainingScriptTests(unittest.TestCase):
     def build_dataset(self, root: Path) -> Path:
+        root.mkdir(parents=True, exist_ok=True)
         data_yaml = root / "data.yaml"
         data_yaml.write_text(
             "nc: 1\nkpt_shape: [3, 3]\nflip_idx: [0, 2, 1]\n", encoding="utf-8"
@@ -72,6 +73,48 @@ class TrainingScriptTests(unittest.TestCase):
                 ])
             with self.assertRaisesRegex(ValueError, "cross splits"):
                 trainer.validate_dataset(data_yaml)
+
+    def test_validate_mixed_dataset_counts_roi_as_train_view_only(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            datasets = base / "datasets"
+            source = datasets / "yolo_pelvis_3kpt_all"
+            self.build_dataset(source)
+            roi = datasets / "yolo_pelvis_3kpt_roi_views"
+            (roi / "images/train").mkdir(parents=True)
+            (roi / "labels/train").mkdir(parents=True)
+            (roi / "images/train/roi__train_sample.png").write_bytes(b"png")
+            (roi / "labels/train/roi__train_sample.txt").write_text(
+                valid_line() + "\n", encoding="utf-8"
+            )
+            with (roi / "manifest.csv").open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(
+                    handle, fieldnames=["group_id", "source_split", "output_image"]
+                )
+                writer.writeheader()
+                writer.writerow({
+                    "group_id": "old:train", "source_split": "train",
+                    "output_image": "images/train/roi__train_sample.png",
+                })
+            config = base / "config"
+            config.mkdir()
+            yaml = config / "mixed.yaml"
+            yaml.write_text(
+                "path: ../datasets\n"
+                "train:\n"
+                "  - yolo_pelvis_3kpt_all/images/train\n"
+                "  - yolo_pelvis_3kpt_roi_views/images/train\n"
+                "val: yolo_pelvis_3kpt_all/images/val\n"
+                "test: yolo_pelvis_3kpt_all/images/test\n"
+                "nc: 1\nkpt_shape: [3, 3]\nflip_idx: [0, 2, 1]\n",
+                encoding="utf-8",
+            )
+            report = trainer.validate_dataset(yaml)
+            self.assertEqual(report["splits"]["train"]["images"], 2)
+            self.assertEqual(report["splits"]["val"]["images"], 1)
+            self.assertEqual(report["splits"]["test"]["images"], 1)
+            self.assertEqual(report["patients"], 3)
+            self.assertEqual(report["roi_patients"], 1)
 
     def test_build_train_args_uses_pose_safe_augmentation(self):
         args = Namespace(

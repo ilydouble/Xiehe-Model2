@@ -17,6 +17,70 @@ COORDINATE_INDICES = (0, 1, 2, 3, 4, 5, 7, 8, 10, 11)
 VISIBILITY_INDICES = (6, 9, 12)
 
 
+def _yaml_scalar(value: str) -> str:
+    return value.split("#", 1)[0].strip().strip("'\"")
+
+
+def dataset_paths(data_yaml: Path) -> tuple[Path, dict[str, list[Path]]]:
+    """Parse the small path subset used by our dataset YAML without PyYAML."""
+    text = data_yaml.read_text(encoding="utf-8")
+    root_value = ""
+    entries: dict[str, list[str]] = {split: [] for split in ("train", "val", "test")}
+    current_list = ""
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not raw_line.startswith((" ", "\t")) and ":" in stripped:
+            key, value = stripped.split(":", 1)
+            current_list = ""
+            if key == "path":
+                root_value = _yaml_scalar(value)
+            elif key in entries:
+                scalar = _yaml_scalar(value)
+                if scalar:
+                    entries[key].append(scalar)
+                else:
+                    current_list = key
+        elif current_list and stripped.startswith("-"):
+            scalar = _yaml_scalar(stripped[1:])
+            if scalar:
+                entries[current_list].append(scalar)
+    root = (data_yaml.parent / root_value).resolve() if root_value else data_yaml.parent.resolve()
+    for split in entries:
+        if not entries[split]:
+            entries[split] = [f"images/{split}"]
+    return root, {
+        split: [(root / value).resolve() for value in values]
+        for split, values in entries.items()
+    }
+
+
+def label_dir_for(image_dir: Path) -> Path:
+    parts = list(image_dir.parts)
+    indices = [index for index, part in enumerate(parts) if part == "images"]
+    if not indices:
+        raise ValueError(f"Image path has no images component: {image_dir}")
+    parts[indices[-1]] = "labels"
+    return Path(*parts)
+
+
+def _validate_manifest_groups(path: Path) -> tuple[list[dict[str, str]], dict[str, set[str]]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    groups: dict[str, set[str]] = {}
+    for row in rows:
+        group_id = (row.get("group_id") or "").strip()
+        split = (row.get("split") or row.get("source_split") or "").strip()
+        if not group_id or split not in {"train", "val", "test"}:
+            raise ValueError(f"Invalid manifest row: {row}")
+        groups.setdefault(group_id, set()).add(split)
+    leaked = sorted(group_id for group_id, splits in groups.items() if len(splits) > 1)
+    if leaked:
+        raise ValueError(f"Patient groups cross splits: {leaked[:5]}")
+    return rows, groups
+
+
 def validate_dataset(data_yaml: Path) -> dict[str, Any]:
     """Validate structure, labels, and patient isolation before training."""
     data_yaml = data_yaml.resolve()
@@ -28,64 +92,96 @@ def validate_dataset(data_yaml: Path) -> dict[str, Any]:
     if "flip_idx: [0, 2, 1]" not in yaml_text:
         raise ValueError("Dataset YAML must declare flip_idx: [0, 2, 1]")
 
-    root = data_yaml.parent
+    root, split_paths = dataset_paths(data_yaml)
     report: dict[str, Any] = {"root": str(root), "splits": {}, "objects": 0}
+    dataset_roots: dict[str, Path] = {}
     for split in ("train", "val", "test"):
-        image_dir = root / "images" / split
-        label_dir = root / "labels" / split
-        if not image_dir.is_dir() or not label_dir.is_dir():
-            raise FileNotFoundError(f"Missing image/label directory for split: {split}")
-        images = {path.stem: path for path in image_dir.glob("*.png")}
-        labels = {path.stem: path for path in label_dir.glob("*.txt")}
-        if not images:
-            raise ValueError(f"Split has no images: {split}")
-        if set(images) != set(labels):
-            image_only = sorted(set(images) - set(labels))[:5]
-            label_only = sorted(set(labels) - set(images))[:5]
-            raise ValueError(
-                f"Image/label mismatch in {split}: image_only={image_only}, label_only={label_only}"
-            )
-        for path in labels.values():
-            lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-            if len(lines) != 1:
-                raise ValueError(f"{path}: expected exactly one pelvis object, got {len(lines)}")
-            parts = lines[0].split()
-            if len(parts) != EXPECTED_FIELDS:
-                raise ValueError(f"{path}: expected {EXPECTED_FIELDS} fields, got {len(parts)}")
-            try:
-                class_id = int(parts[0])
-                values = [float(value) for value in parts[1:]]
-            except ValueError as exc:
-                raise ValueError(f"{path}: non-numeric label value") from exc
-            if class_id != 0:
-                raise ValueError(f"{path}: expected class id 0, got {class_id}")
-            if any(not 0.0 <= values[index] <= 1.0 for index in COORDINATE_INDICES):
-                raise ValueError(f"{path}: coordinate outside [0, 1]")
-            if values[2] <= 0 or values[3] <= 0:
-                raise ValueError(f"{path}: non-positive bounding-box size")
-            if [values[index] for index in VISIBILITY_INDICES] != [2.0, 2.0, 2.0]:
-                raise ValueError(f"{path}: expected three visible keypoints")
-        report["splits"][split] = {"images": len(images), "objects": len(labels)}
-        report["objects"] += len(labels)
+        split_total = 0
+        views: dict[str, dict[str, int]] = {}
+        all_stems: set[str] = set()
+        for image_dir in split_paths[split]:
+            label_dir = label_dir_for(image_dir)
+            if not image_dir.is_dir() or not label_dir.is_dir():
+                raise FileNotFoundError(f"Missing image/label directory for split: {split}: {image_dir}")
+            dataset_root = image_dir.parent.parent
+            dataset_roots[dataset_root.name] = dataset_root
+            images = {path.stem: path for path in image_dir.glob("*.png")}
+            labels = {path.stem: path for path in label_dir.glob("*.txt")}
+            if not images:
+                raise ValueError(f"Split has no images: {split}: {image_dir}")
+            if set(images) != set(labels):
+                image_only = sorted(set(images) - set(labels))[:5]
+                label_only = sorted(set(labels) - set(images))[:5]
+                raise ValueError(
+                    f"Image/label mismatch in {split}: image_only={image_only}, label_only={label_only}"
+                )
+            duplicated = sorted(all_stems & set(images))
+            if duplicated:
+                raise ValueError(f"Duplicate stems across {split} views: {duplicated[:5]}")
+            all_stems.update(images)
+            for path in labels.values():
+                lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+                if len(lines) != 1:
+                    raise ValueError(f"{path}: expected exactly one pelvis object, got {len(lines)}")
+                parts = lines[0].split()
+                if len(parts) != EXPECTED_FIELDS:
+                    raise ValueError(f"{path}: expected {EXPECTED_FIELDS} fields, got {len(parts)}")
+                try:
+                    class_id = int(parts[0])
+                    values = [float(value) for value in parts[1:]]
+                except ValueError as exc:
+                    raise ValueError(f"{path}: non-numeric label value") from exc
+                if class_id != 0:
+                    raise ValueError(f"{path}: expected class id 0, got {class_id}")
+                if any(not 0.0 <= values[index] <= 1.0 for index in COORDINATE_INDICES):
+                    raise ValueError(f"{path}: coordinate outside [0, 1]")
+                if values[2] <= 0 or values[3] <= 0:
+                    raise ValueError(f"{path}: non-positive bounding-box size")
+                if [values[index] for index in VISIBILITY_INDICES] != [2.0, 2.0, 2.0]:
+                    raise ValueError(f"{path}: expected three visible keypoints")
+            count = len(images)
+            views[dataset_root.name] = {"images": count, "objects": count}
+            split_total += count
+        report["splits"][split] = {"images": split_total, "objects": split_total, "views": views}
+        report["objects"] += split_total
 
-    manifest = root / "manifest.csv"
-    if manifest.is_file():
-        groups: dict[str, set[str]] = {}
-        with manifest.open("r", encoding="utf-8", newline="") as handle:
-            rows = list(csv.DictReader(handle))
-        for row in rows:
-            group_id, split = (row.get("group_id") or "").strip(), (row.get("split") or "").strip()
-            if not group_id or split not in {"train", "val", "test"}:
-                raise ValueError(f"Invalid manifest row: {row}")
-            groups.setdefault(group_id, set()).add(split)
-        leaked = sorted(group_id for group_id, splits in groups.items() if len(splits) > 1)
-        if leaked:
-            raise ValueError(f"Patient groups cross splits: {leaked[:5]}")
-        if len(rows) != report["objects"]:
+    source_root = dataset_roots.get("yolo_pelvis_3kpt_all", data_yaml.parent)
+    source_manifest = source_root / "manifest.csv"
+    if source_manifest.is_file():
+        rows, groups = _validate_manifest_groups(source_manifest)
+        source_objects = sum(
+            view["objects"]
+            for split in report["splits"].values()
+            for name, view in split["views"].items()
+            if name == source_root.name
+        )
+        if len(rows) != source_objects:
             raise ValueError(
-                f"Manifest/label count mismatch: manifest={len(rows)}, labels={report['objects']}"
+                f"Manifest/label count mismatch: manifest={len(rows)}, source_labels={source_objects}"
             )
         report["patients"] = len(groups)
+        source_train_groups = {
+            row["group_id"] for row in rows if (row.get("split") or "").strip() == "train"
+        }
+    else:
+        source_train_groups = set()
+
+    roi_root = dataset_roots.get("yolo_pelvis_3kpt_roi_views")
+    if roi_root is not None:
+        roi_manifest = roi_root / "manifest.csv"
+        if not roi_manifest.is_file():
+            raise FileNotFoundError(f"Missing ROI manifest: {roi_manifest}")
+        roi_rows, roi_groups = _validate_manifest_groups(roi_manifest)
+        roi_count = report["splits"]["train"]["views"][roi_root.name]["images"]
+        if len(roi_rows) != roi_count:
+            raise ValueError(f"ROI manifest/image count mismatch: {len(roi_rows)} != {roi_count}")
+        if any((row.get("source_split") or "").strip() != "train" for row in roi_rows):
+            raise ValueError("ROI manifest contains a non-train source")
+        if source_train_groups and not set(roi_groups).issubset(source_train_groups):
+            raise ValueError("ROI patient group is not contained in source train split")
+        if (roi_root / "images/val").exists() or (roi_root / "images/test").exists():
+            raise ValueError("ROI dataset must not contain validation or test image directories")
+        report["roi_patients"] = len(roi_groups)
     return report
 
 
@@ -145,7 +241,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--data", type=Path,
-        default=project_root / "datasets/yolo_pelvis_3kpt_all/data.yaml",
+        default=project_root / "4-model_training_CFH/pelvis_3kpt_roi_mixed.yaml",
     )
     parser.add_argument(
         "--model", default="yolo11m-pose.pt",

@@ -29,6 +29,7 @@ CFH + S1 三关键点 YOLO Pose 训练脚本
     --standard          标准训练: YOLO11m-Pose, 200轮, 1280图像, batch 4（默认）
     --best              高精度: YOLO11l-Pose, 300轮, 1280图像, batch 2
     --spine-transfer    使用已训练的23类侧面脊柱best.pt初始化
+    --full-frame-only   仅使用原图train；默认使用原图+ROI混合train
 
 自定义选项:
     --model <path/name> 模型文件或Ultralytics模型名
@@ -46,6 +47,7 @@ CFH + S1 三关键点 YOLO Pose 训练脚本
 示例:
     ./train_pelvis_pose_3kpt.sh --quick
     ./train_pelvis_pose_3kpt.sh --standard --device 0
+    ./train_pelvis_pose_3kpt.sh --standard --full-frame-only
     ./train_pelvis_pose_3kpt.sh --spine-transfer --batch 2
     ./train_pelvis_pose_3kpt.sh --resume
 EOF
@@ -56,8 +58,8 @@ EPOCHS=200
 IMGSZ=1280
 BATCH=4
 DEVICE="0"
-NAME="yolo11m_pelvis_3kpt_all"
-DATA="${PROJECT_ROOT}/datasets/yolo_pelvis_3kpt_all/data.yaml"
+NAME="yolo11m_pelvis_3kpt_roi_mixed"
+DATA="${SCRIPT_DIR}/pelvis_3kpt_roi_mixed.yaml"
 WORKERS=8
 RESUME=""
 DRY_RUN=false
@@ -77,7 +79,7 @@ while [[ $# -gt 0 ]]; do
             EPOCHS=200
             IMGSZ=1280
             BATCH=4
-            NAME="yolo11m_pelvis_3kpt_all"
+            NAME="yolo11m_pelvis_3kpt_roi_mixed"
             shift
             ;;
         --best)
@@ -85,12 +87,17 @@ while [[ $# -gt 0 ]]; do
             EPOCHS=300
             IMGSZ=1280
             BATCH=2
-            NAME="yolo11l_pelvis_3kpt_best"
+            NAME="yolo11l_pelvis_3kpt_roi_mixed_best"
             shift
             ;;
         --spine-transfer)
             MODEL="${PROJECT_ROOT}/runs/pose/yolo11m_lateral_23cls/weights/best.pt"
-            NAME="yolo11m_pelvis_3kpt_spine_transfer"
+            NAME="yolo11m_pelvis_3kpt_roi_mixed_spine_transfer"
+            shift
+            ;;
+        --full-frame-only)
+            DATA="${PROJECT_ROOT}/datasets/yolo_pelvis_3kpt_all/data.yaml"
+            NAME="yolo11m_pelvis_3kpt_full_frame_only"
             shift
             ;;
         --model)
@@ -166,7 +173,7 @@ echo ""
 
 if [[ ! -f "${DATA}" ]]; then
     print_error "数据集配置不存在: ${DATA}"
-    print_info "请先上传或生成 datasets/yolo_pelvis_3kpt_all"
+    print_info "请上传原始联合数据集和 datasets/yolo_pelvis_3kpt_roi_views"
     exit 1
 fi
 print_success "数据集路径检查通过"
