@@ -189,6 +189,15 @@
   - 定位新run的best.pt，用Ultralytics实际加载确认为23类、4关键点Pose模型；训练记录的Pose mAP50-95最高0.92709。
   - 盘点384份老JSON：C3-C6完全缺失，18个C2是股骨头circle而不是颈椎，现有C7-L5 polygon必须保留。
   - 确认本机Miniconda base环境已具备torch/Ultralytics/OpenCV/Pillow，可执行小样本试标。
+
+### Phase 27: 补标注推理器与自动测试
+- **Status:** complete
+- Actions taken:
+  - 新增第一批23类LabelMe候选标注脚本和shell入口；源目录只读、输出已存在即拒绝、仅处理严格同stem配对。
+  - 每图使用原图、保守连续黑边裁剪、以已有椎体居中的0.353全高视图，并将所有候选映射回原图坐标。
+  - 新增跨视图候选聚类、已有polygon代理评分、解剖顺序检查和high/medium/low复核分级；所有新增shape均显式标记需要人工复核。
+  - 6项单元测试、Python语法、shell语法、真实模型/数据dry-run和Git空白检查通过。
+  - 新增完整操作与安全边界说明文档。
   - 确认404张PNG中384张有严格同stem JSON，20张无配对JSON；禁止把同目录其他JSON套给这些图片。
   - 以新批几何分布设计并否决局部颈椎裁剪：局部图丢失训练时全脊柱上下文，模型几乎不输出颈椎。
   - 完成30张分层样本的原图/去黑边/训练比例三视图试验；C2-C6通常有候选，但已有C7-L5代理召回仅约59%，确定输出全部需要人工复核。
@@ -323,6 +332,7 @@
 | 2026-09-07 | `xargs jq` 抽样管道被末端 `head` 提前关闭并报告SIGPIPE | 1 | 数据已正确取得；后续不再用会提前关流的同类管道 |
 
 | 2026-09-08 | 用 command -v -a 盘点Python环境时zsh将-v解析为命令 | 1 | 改用 type -a，定位到可用的Miniconda Python |
+| 2026-09-08 | 首次提交补标注脚本时沙箱拒绝创建.git/index.lock | 1 | 使用受控权限仅暂存并提交本任务4个文件 |
 
 ## 5-Question Reboot Check
 | Question | Answer |
