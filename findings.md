@@ -1,6 +1,9 @@
 # Findings & Decisions
 
 ## Requirements
+- 2026-09-08：用户已将第二批23类侧面脊柱模型拷回本机，要求下一步为第一批 `/Volumes/E/spine_data/LAT202511` 补标注。
+- 补标注必须保留E盘原图和原LabelMe JSON，先将候选结果写入workspace独立目录，人工复核后再决定合并。
+- 第一批存在大量左右黑边，推理应至少比较原图和安全去连续黑边视图，裁剪视图预测必须精确映射回原图坐标。
 - 用户已授权处理侧面三关键点联合数据集：参照正面模型把聚焦裁剪视图加入训练，同时必须避免患者或同源派生图跨train/val/test泄漏。
 - 泄漏边界固定为先使用既有患者级split，再只从 `images/train` 生成派生ROI；train混合原图和ROI，val/test不生成也不引用GT裁剪视图。
 - 分析 `/Volumes/E/spine_data/20260903-侧面数据第二批` 中的侧面数据。
