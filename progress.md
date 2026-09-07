@@ -252,12 +252,23 @@
   - 更新AutoDL说明，明确需上传原始联合数据集与1.5GB ROI派生目录，并说明派生视图不等于新增病例。
 
 ### Phase 25: 独立泄漏审计与最终交付
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 准备按源manifest、ROI manifest和跨split图像哈希独立复核患者与同源图像泄漏。
   - 首次追加审计功能时文档补丁锚点不匹配，补丁整体安全拒绝且没有产生半成品；改为拆分应用。
   - 新增可重复执行的 `--audit-only`：检查源患者跨split、源图跨split精确重复、ROI源split/患者/哈希、ROI与val/test精确相同以及禁建holdout派生目录。
   - 10项相关测试通过；真实全量审计状态passed，六项关键泄漏计数全部为0，报告写入ROI目录 `leakage_audit.json`。
+  - 最终复跑联合转换器、ROI生成器、训练校验器共16项测试，全部通过；Python与shell语法、Git空白和数据忽略规则均通过。
+  - 最终混合dry-run确认train 1,648视图、val/test各102原图、源患者1,023、ROI患者819；未启动训练。
+- Files created/modified:
+  - `scripts/build_pelvis_roi_views.py`
+  - `tests/test_build_pelvis_roi_views.py`
+  - `4-model_training_CFH/pelvis_3kpt_roi_mixed.yaml`
+  - `4-model_training_CFH/train_pelvis_pose_3kpt.py`
+  - `4-model_training_CFH/train_pelvis_pose_3kpt.sh`
+  - `tests/test_train_pelvis_pose_3kpt.py`
+  - `docs/pelvis_pose_training.md`
+  - `datasets/yolo_pelvis_3kpt_roi_views/*`（本地生成并由Git忽略）
 
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
