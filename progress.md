@@ -215,12 +215,20 @@
 ## Session: 2026-09-07（侧面三关键点ROI混合数据集）
 
 ### Phase 21: 三关键点ROI混合方案与泄漏边界
-- **Status:** in_progress
+- **Status:** complete
 - **Started:** 2026-09-07
 - Actions taken:
   - 用户授权参照正面模型处理侧面三关键点联合数据集，并特别要求避免数据泄漏。
   - 核对正面模型真实方案：先固定患者split，仅对train生成一对一GT安全ROI；train为原图+ROI，val/test保持原图且不使用GT裁剪。
   - 初步固定侧面目标规模为824张train原图加824张派生ROI；102张val和102张test均保持原样。
+  - 复核现有联合manifest和训练校验器，确认可按每条train记录建立患者、批次、源图和哈希追溯链。
+  - 参照正面真实ROI面积约53%，将侧面三点ROI初始几何固定为目标框每侧外扩2倍，并保留确定性5%平移、10%尺度扰动及3%安全余量；两批使用同一规则。
+  - 当前Python没有Ultralytics/Pillow；生成器决定使用标准库解析标签与PNG尺寸，并调用现有FFmpeg完成PNG裁剪。
+
+### Phase 22: ROI生成器与自动测试
+- **Status:** in_progress
+- Actions taken:
+  - 准备实现只读取train、拒绝输出覆盖、临时目录原子构建、标签同步换算及manifest逐图哈希的生成器。
 
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|

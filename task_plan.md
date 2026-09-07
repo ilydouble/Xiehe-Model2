@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Phase 21
+Phase 22
 
 ## Phases
 
@@ -126,16 +126,16 @@ Phase 21
 - **Status:** complete
 
 ### Phase 21: 三关键点ROI混合方案与泄漏边界
-- [ ] 复核现有联合数据集、manifest、split与训练入口
-- [ ] 固定train-only派生、原图+ROI混合、val/test原图的契约
-- [ ] 固定ROI几何、安全边距、标签换算与来源追溯规则
-- **Status:** in_progress
+- [x] 复核现有联合数据集、manifest、split与训练入口
+- [x] 固定train-only派生、原图+ROI混合、val/test原图的契约
+- [x] 固定ROI几何、安全边距、标签换算与来源追溯规则
+- **Status:** complete
 
 ### Phase 22: ROI生成器与自动测试
 - [ ] 实现三关键点YOLO Pose ROI生成器
 - [ ] 覆盖裁剪框、标签换算、确定性和泄漏门槛测试
 - [ ] 通过语法与单元测试
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 23: 生成侧面三关键点ROI训练视图
 - [ ] 只从824张train原图生成一对一ROI图像与标签
@@ -190,6 +190,7 @@ Phase 21
 | Python 3.13动态导入含dataclass模块时测试未注册`sys.modules` | 1 | 在测试夹具执行模块前按spec名称注册，转换代码无需改动 |
 | 脊柱训练文档示例名称与补丁预期不一致 | 1 | 原补丁安全拒绝且无半成品；读取实际文档后按精确文本重新应用 |
 | 黑边阈值校准首次读取到`._*.png`导致FFmpeg解码失败 | 1 | 明确过滤AppleDouble辅助文件后再选取真实PNG样本 |
+| 搜索本机Ultralytics源码时zsh未匹配系统路径glob | 1 | 已确认当前Python无Ultralytics；不重复该glob，训练YAML按已有已验证的正面多目录模式生成 |
 
 ## Notes
 - 不纳入或覆盖工作区已有的无关修改。
