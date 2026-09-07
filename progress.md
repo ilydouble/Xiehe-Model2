@@ -78,13 +78,15 @@
   - `progress.md`（追加会话）
 
 ### Phase 7: 第二批转换规范与实现
-- **Status:** in_progress
+- **Status:** complete
 - **Started:** 2026-09-07
 - Actions taken:
   - 确认用户要求在 `datasets/` 下实际生成第二批 YOLO 训练集，并提供 AutoDL 训练脚本。
   - 固定本轮标签范围为 23 类椎体 Pose（C2-C7、T1-T12、L1-L5），S1/CFH 分离，T13 等待新增有效病例后扩类。
   - 核对第二批 C2 polygon 697 例、C7 polygon 705 例，确认可先独立训练完整椎体模型。
   - 检查现有训练入口和 `.gitignore`：生成数据已被 Git 排除；新模型需要独立的 23 类配置与训练入口，并处理水平翻转时的关键点索引交换。
+  - 新增依赖标准库的 LabelMe→YOLO Pose 转换器、8例默认复核隔离表和4项单元测试。
+  - 转换器实现严格配对、患者级确定性拆分、四角点规范排序、越界裁剪、原图无损复制、manifest 与转换报告输出。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |

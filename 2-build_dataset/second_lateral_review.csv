@@ -1,0 +1,9 @@
+stem,action,reason
+FZBW2506P000132_LAT_100221,exclude,T12 is missing inside the visible anatomical sequence; numbering requires review
+LFPY2509P000090_LAT_171858,exclude,C2-C6 are visible but unannotated
+LFPY2509P000513_LAT_150609,exclude,L5 is missing inside the visible anatomical sequence; numbering requires review
+LFPY2509P001315_LAT_105800,exclude,L5 is missing inside the visible anatomical sequence; numbering requires review
+LFPY2509P003841_LAT_142108,exclude,C2-C6 are visible but unannotated
+LWSY2507P000213_0002089_1.2.156.147522.44.410947.2089.3.1.20250701150215,exclude,T1-T3 are missing inside the visible anatomical sequence
+PZSW2509P001301_LAT_101552,exclude,L4 is missing inside the visible anatomical sequence; numbering requires review
+THBZ2505P003141_LAT_111109,exclude,T1 and T2 appear swapped and require correction
