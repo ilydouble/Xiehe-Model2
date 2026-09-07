@@ -4,7 +4,7 @@
 完成 `/Volumes/E/spine_data/20260903-侧面数据第二批` 的质量分析，并将其构建为可上传 AutoDL 训练的 23 类 YOLO Pose 数据集，交付可复现的转换和训练脚本。
 
 ## Current Phase
-Phase 9
+Phase 10
 
 ## Phases
 
@@ -55,15 +55,15 @@ Phase 9
 - **Status:** complete
 
 ### Phase 9: AutoDL 训练入口
-- [ ] 新增适用于新数据集的训练脚本和服务器使用说明
-- [ ] 支持预训练权重、设备、batch、imgsz 和断点续训参数
-- **Status:** in_progress
+- [x] 新增适用于新数据集的训练脚本和服务器使用说明
+- [x] 支持预训练权重、设备、batch、imgsz 和断点续训参数
+- **Status:** complete
 
 ### Phase 10: 完整验证与交付
 - [ ] 校验图像/标签配对、类别范围、关键点格式及坐标范围
 - [ ] 运行脚本语法、单元测试和训练 dry-run 检查
 - [ ] 提交当前任务全部代码/文档变更并给出 AutoDL 操作步骤
-- **Status:** pending
+- **Status:** in_progress
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？

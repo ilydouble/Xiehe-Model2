@@ -95,6 +95,14 @@
   - 隔离8例人工复核样本，最终纳入698张图像、697名患者；按患者拆为558 train、70 val、70 test。
   - 全量验证698对图像/标签、16,032行标注、23类ID、17字段格式、归一化坐标与关键点可见性；未发现错误或患者泄漏。
 
+### Phase 9: AutoDL 训练入口
+- **Status:** complete
+- Actions taken:
+  - 确认本地旧模型位于 `6-app_backend/models/corner_model.pt`，可选作迁移训练初始化权重。
+  - 确认数据集不会随 Git 上传，训练说明需明确单独传输约2.0 GiB的数据目录。
+  - 新增23类AutoDL训练脚本，支持官方或旧模型初始化、分辨率/batch/device等参数、断点续训与dry-run。
+  - 新增训练脚本测试和完整服务器操作说明；真实数据dry-run验证通过。
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
