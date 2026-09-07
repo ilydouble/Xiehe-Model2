@@ -1,10 +1,10 @@
-# Task Plan: 侧面 LabelMe 数据集分析
+# Task Plan: 侧面 LabelMe 数据集分析与第二批训练集构建
 
 ## Goal
-对 `/Volumes/E/spine_data/20260903-侧面数据第二批` 做只读的数据完整性、标注分布与质量分析，并向用户交付可核查的结论。
+完成 `/Volumes/E/spine_data/20260903-侧面数据第二批` 的质量分析，并将其构建为可上传 AutoDL 训练的 23 类 YOLO Pose 数据集，交付可复现的转换和训练脚本。
 
 ## Current Phase
-Complete
+Phase 7
 
 ## Phases
 
@@ -42,6 +42,29 @@ Complete
 - [x] 向用户交付是否可合并的明确结论
 - **Status:** complete
 
+### Phase 7: 第二批转换规范与实现
+- [ ] 固定 23 类椎体标签、四角点顺序和异常样本策略
+- [ ] 实现平铺 LabelMe 到 YOLO Pose 的可复用转换器
+- [ ] 为转换逻辑补充自动测试
+- **Status:** in_progress
+
+### Phase 8: 生成第二批 YOLO 数据集
+- [ ] 按患者分组生成 train/val/test
+- [ ] 复制图像并写入 YOLO Pose 标签、data.yaml 和清单
+- [ ] 输出转换统计与人工复核清单
+- **Status:** pending
+
+### Phase 9: AutoDL 训练入口
+- [ ] 新增适用于新数据集的训练脚本和服务器使用说明
+- [ ] 支持预训练权重、设备、batch、imgsz 和断点续训参数
+- **Status:** pending
+
+### Phase 10: 完整验证与交付
+- [ ] 校验图像/标签配对、类别范围、关键点格式及坐标范围
+- [ ] 运行脚本语法、单元测试和训练 dry-run 检查
+- [ ] 提交当前任务全部代码/文档变更并给出 AutoDL 操作步骤
+- **Status:** pending
+
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
 2. 是否存在缺失配对、损坏文件、坐标越界、空标注、重复数据或其他质量风险？
@@ -54,6 +77,8 @@ Complete
 |----------|-----------|
 | 原始数据只读 | 避免分析过程改变数据集 |
 | 先全量自动统计，再做分层抽样视觉检查 | 同时覆盖规模性问题与肉眼可见的标注质量问题 |
+| 第二批主模型使用 23 类椎体 Pose | 本批有 C2-C7、T1-T12、L1-L5 的四点 polygon；T13 无样本，S1/CFH 标注结构不同 |
+| 不把未标注类别的旧批直接混入训练 | YOLO 会将可见但未标注目标当成背景，损害 C2-C6 学习 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

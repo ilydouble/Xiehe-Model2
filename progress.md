@@ -77,6 +77,14 @@
   - `findings.md`（追加需求）
   - `progress.md`（追加会话）
 
+### Phase 7: 第二批转换规范与实现
+- **Status:** in_progress
+- **Started:** 2026-09-07
+- Actions taken:
+  - 确认用户要求在 `datasets/` 下实际生成第二批 YOLO 训练集，并提供 AutoDL 训练脚本。
+  - 固定本轮标签范围为 23 类椎体 Pose（C2-C7、T1-T12、L1-L5），S1/CFH 分离，T13 等待新增有效病例后扩类。
+  - 核对第二批 C2 polygon 697 例、C7 polygon 705 例，确认可先独立训练完整椎体模型。
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -103,6 +111,7 @@
 | 2026-09-07 | 跨批次 1,110 张 PNG 全量 SHA-256 超过 30 秒 | 1 | 改按文件大小交集筛选候选后哈希 |
 | 2026-09-07 | split 重叠检查破坏 zsh PATH 且 awk 语法失败 | 1 | 改用临时 Python 脚本，避免 shell 特殊变量和保留名 |
 | 2026-09-07 | 股骨头分布脚本误读 AppleDouble JSON | 1 | 加入 `not name.startswith("._")` 过滤 |
+| 2026-09-07 | `jq` 查询审计标签时字段路径错误返回 null | 1 | 检查顶层结构后使用 `annotations.label_stats` |
 
 ## 5-Question Reboot Check
 | Question | Answer |
