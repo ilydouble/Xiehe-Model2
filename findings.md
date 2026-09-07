@@ -39,6 +39,9 @@
 - 仓库训练目录职责明确：`3-model_training` 放脊柱椎体Pose，`4-model_training_CFH` 放CFH/骨盆相关训练；联合骨盆三关键点脚本应位于后者。
 
 ## Research Findings
+- 现有 `datasets/yolo_pelvis_3kpt_all/data.yaml` 仅引用原始 `images/train|val|test`；训练校验器假设三个split都位于同一数据根目录，若增加独立ROI目录，需要扩展为可解析YAML中多train路径并同时校验派生manifest。
+- 联合数据集manifest逐图保存 `batch、patient_id、group_id、split、image、label`，可以把每个ROI精确追溯到原train记录，并独立证明其源患者未出现在val/test。
+- 当前环境没有Pillow，但FFmpeg可用且已用于图像全量扫描；ROI生成器可用标准库解析PNG尺寸、用FFmpeg无损重编码裁剪，避免为了本地构建新增图像库依赖。
 - 正面模型实际采用的不是简单纯黑阈值裁边，而是由YOLO bbox与可见关键点并集确定ROI，外扩20%上下文并加入确定性5%平移、10%尺度扰动；每张train原图生成一张ROI，manifest记录源路径与哈希，val/test保持原图。
 - 侧面三关键点数据现有患者隔离split为824/102/102，且两批来源在三个split中均有覆盖；本轮应保持现有split完全不变，派生图数量不应被表述为新增独立病例。
 - 当前两套Pose训练入口均使用 `imgsz=1280`、`rect=True` 并关闭mosaic/mixup；这能保持纵横比并按相近比例组batch，但不会消除第一批左右空画布造成的有效解剖区域缩小。
