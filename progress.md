@@ -212,6 +212,16 @@
   - `tests/test_analyze_image_appearance.py`（新增递归发现测试）
   - `analysis/side_labelme_LAT202511/*`（本地生成并由Git忽略）
 
+## Session: 2026-09-07（侧面三关键点ROI混合数据集）
+
+### Phase 21: 三关键点ROI混合方案与泄漏边界
+- **Status:** in_progress
+- **Started:** 2026-09-07
+- Actions taken:
+  - 用户授权参照正面模型处理侧面三关键点联合数据集，并特别要求避免数据泄漏。
+  - 核对正面模型真实方案：先固定患者split，仅对train生成一对一GT安全ROI；train为原图+ROI，val/test保持原图且不使用GT裁剪。
+  - 初步固定侧面目标规模为824张train原图加824张派生ROI；102张val和102张test均保持原样。
+
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
 | 审计脚本语法 | `python3 -m py_compile` | 无语法错误 | 通过 | ✓ |

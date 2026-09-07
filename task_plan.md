@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Phase 19
+Phase 21
 
 ## Phases
 
@@ -124,6 +124,36 @@ Phase 19
 - [x] 给出统一预处理及训练建议
 - [x] 复跑测试、核查完整性并提交全部本轮变更
 - **Status:** complete
+
+### Phase 21: 三关键点ROI混合方案与泄漏边界
+- [ ] 复核现有联合数据集、manifest、split与训练入口
+- [ ] 固定train-only派生、原图+ROI混合、val/test原图的契约
+- [ ] 固定ROI几何、安全边距、标签换算与来源追溯规则
+- **Status:** in_progress
+
+### Phase 22: ROI生成器与自动测试
+- [ ] 实现三关键点YOLO Pose ROI生成器
+- [ ] 覆盖裁剪框、标签换算、确定性和泄漏门槛测试
+- [ ] 通过语法与单元测试
+- **Status:** pending
+
+### Phase 23: 生成侧面三关键点ROI训练视图
+- [ ] 只从824张train原图生成一对一ROI图像与标签
+- [ ] 输出manifest、汇总与混合训练YAML
+- [ ] 视觉复核代表性ROI并全量检查标签几何
+- **Status:** pending
+
+### Phase 24: 训练入口与AutoDL说明
+- [ ] 让三关键点训练脚本支持原图或ROI混合数据入口
+- [ ] 更新shell启动器与AutoDL操作说明
+- [ ] 真实数据dry-run验证混合规模和val/test边界
+- **Status:** pending
+
+### Phase 25: 独立泄漏审计与最终交付
+- [ ] 检查患者、原图哈希、派生来源均无跨split泄漏
+- [ ] 复跑相关测试和数据验收
+- [ ] 提交本轮全部代码与文档变更并交付
+- **Status:** pending
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
