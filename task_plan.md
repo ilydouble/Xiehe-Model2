@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Phase 16
+Phase 17
 
 ## Phases
 
@@ -96,16 +96,16 @@ Phase 16
 - **Status:** complete
 
 ### Phase 16: 全量运行与视觉复核
-- [ ] 扫描706张原始PNG并输出逐图CSV和汇总JSON
-- [ ] 按来源、尺寸和黑边方向统计分布
-- [ ] 抽查黑边最大、无黑边和典型样本，核对自动判断
-- **Status:** in_progress
+- [x] 扫描706张原始PNG并输出逐图CSV和汇总JSON
+- [x] 按来源、尺寸和黑边方向统计分布
+- [x] 抽查黑边最大、无黑边和典型样本，核对自动判断
+- **Status:** complete
 
 ### Phase 17: 分析报告与训练建议
 - [ ] 编写分辨率、比例、黑边及域偏差报告
 - [ ] 给出resize/letterbox、裁边和增强建议
 - [ ] 复跑测试、提交代码和文档并交付
-- **Status:** pending
+- **Status:** in_progress
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
