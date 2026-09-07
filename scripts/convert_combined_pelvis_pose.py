@@ -119,12 +119,20 @@ def extract_pelvis_annotation(
         by_label[label].append(shape)
 
     s1_shapes = by_label.get("S1", [])
-    if len(s1_shapes) != 1:
-        raise ValueError("missing_or_duplicate_S1")
-    s1 = s1_shapes[0]
-    s1_points = s1.get("points")
-    if s1.get("shape_type") != "line" or not isinstance(s1_points, list) or len(s1_points) != 2:
-        raise ValueError("S1_not_two_point_line")
+    valid_s1_lines = [
+        shape for shape in s1_shapes
+        if shape.get("shape_type") == "line"
+        and isinstance(shape.get("points"), list)
+        and len(shape["points"]) == 2
+    ]
+    if len(valid_s1_lines) != 1:
+        if not s1_shapes:
+            raise ValueError("missing_S1")
+        raise ValueError("missing_or_duplicate_valid_S1_line")
+    # Some old annotations also contain an S1 circle.  It is an auxiliary
+    # shape, not an endpoint definition, so the unique valid line wins.
+    s1 = valid_s1_lines[0]
+    s1_points = s1["points"]
     endpoints = [(float(point[0]), float(point[1])) for point in s1_points]
     if endpoints[0] == endpoints[1]:
         raise ValueError("degenerate_S1_line")

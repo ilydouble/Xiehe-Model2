@@ -58,6 +58,18 @@ class ConverterTests(unittest.TestCase):
             self.assertEqual(points[0], (50.0, 150.0))
             self.assertEqual(source, "FH_midpoint")
 
+    def test_uses_unique_s1_line_when_auxiliary_s1_circle_exists(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            annotation = Path(temp_dir) / "sample.json"
+            write_annotation(annotation)
+            data = json.loads(annotation.read_text())
+            data["shapes"].append({
+                "label": "S1", "shape_type": "circle", "points": [[50, 170], [55, 175]]
+            })
+            annotation.write_text(json.dumps(data), encoding="utf-8")
+            _, _, points, _ = converter.extract_pelvis_annotation(annotation, "old")
+            self.assertEqual(points[1:], ((20.0, 170.0), (80.0, 180.0)))
+
     def test_pose_line_has_one_class_and_three_visible_keypoints(self):
         line, clipped = converter.yolo_pose_line(
             ((50, 150), (-2, 170), (80, 180)), width=100, height=200

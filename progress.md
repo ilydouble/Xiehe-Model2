@@ -120,6 +120,7 @@
   - 核对两批严格同stem配对和代表性几何，确认旧384对、新706对，目标point/line结构可统一。
   - 新增联合骨盆LabelMe→YOLO Pose转换器及覆盖直接CFH、FH中点、S1端点排序、去重和端到端转换的测试。
   - 首轮测试暴露Python 3.13动态导入dataclass模块需先注册`sys.modules`，已修复测试夹具并保留错误记录。
+  - 首次真实生成发现旧批只纳入329例；追查确认5例同时含合法S1 line与辅助S1 circle，规则已修正为采用唯一合法line，预计最终总量由1,023增至1,028。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
