@@ -199,6 +199,19 @@
   - 第一批黑边全部集中在左右方向：左侧187张明显、右侧247张明显，顶部/底部为0；第二批则主要是上下黑边。
   - 视觉复核QIN_HE、LA_QIAN、CHEN_QING_RUI及AN_JIA_YUE样本，确认自动检测对应真实的左右空画布/黑带；无连续边带不代表影像背景中完全没有黑色区域。
 
+### Phase 20: 比较报告与训练建议
+- **Status:** complete
+- Actions taken:
+  - 编写第一批与第二批分辨率、宽高比、颜色模式、黑边方向和严重度的正式比较报告。
+  - 明确当前 `rect=True` 等比例训练可作为基线，但不能消除第一批左右空画布造成的有效分辨率浪费。
+  - 建议先按原图训练并分批评估三关键点误差；只有确认来源差距后，再构建同步调整图片、框和关键点的裁黑边对照数据集。
+  - 最终复跑5项单元测试、Python语法、404行CSV及两批关键汇总断言，全部通过。
+- Files created/modified:
+  - `docs/first_vs_second_lateral_image_comparison.md`（新建）
+  - `1-check_data/analyze_image_appearance.py`（支持递归扫描并保留相对路径）
+  - `tests/test_analyze_image_appearance.py`（新增递归发现测试）
+  - `analysis/side_labelme_LAT202511/*`（本地生成并由Git忽略）
+
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
 | 审计脚本语法 | `python3 -m py_compile` | 无语法错误 | 通过 | ✓ |
