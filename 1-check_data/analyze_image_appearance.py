@@ -33,6 +33,13 @@ COLOR_TYPES = {
 SIDES = ("top", "bottom", "left", "right")
 
 
+def discover_pngs(source: Path) -> list[Path]:
+    """Find real PNG files recursively while ignoring macOS AppleDouble files."""
+    return sorted(
+        path for path in source.rglob("*.png") if not path.name.startswith("._")
+    )
+
+
 def read_png_header(path: Path) -> dict[str, int | str]:
     with path.open("rb") as handle:
         header = handle.read(29)
@@ -318,6 +325,7 @@ def summarize(records: Sequence[dict[str, Any]], config: dict[str, Any]) -> dict
             "largest_vertical_total": [
                 {
                     "stem": row["stem"],
+                    "relative_path": row.get("relative_path", row.get("filename", "")),
                     "source": row["source"],
                     "top_ratio": row["black_top_ratio"],
                     "bottom_ratio": row["black_bottom_ratio"],
@@ -331,6 +339,7 @@ def summarize(records: Sequence[dict[str, Any]], config: dict[str, Any]) -> dict
             "largest_horizontal_total": [
                 {
                     "stem": row["stem"],
+                    "relative_path": row.get("relative_path", row.get("filename", "")),
                     "source": row["source"],
                     "left_ratio": row["black_left_ratio"],
                     "right_ratio": row["black_right_ratio"],
@@ -376,9 +385,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     source, output_dir = args.source.resolve(), args.output_dir.resolve()
-    images = sorted(
-        path for path in source.glob("*.png") if not path.name.startswith("._")
-    )
+    images = discover_pngs(source)
     if not images:
         raise FileNotFoundError(f"No real PNG images found under {source}")
     if args.sample_width <= 0 or args.workers <= 0:
@@ -386,10 +393,12 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     def worker(path: Path) -> dict[str, Any]:
-        return analyze_one(
+        record = analyze_one(
             path, args.ffmpeg, args.sample_width, args.near_black_threshold,
             args.required_fraction, args.notable_ratio,
         )
+        record["relative_path"] = str(path.relative_to(source))
+        return record
 
     records: list[dict[str, Any]] = []
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
@@ -397,7 +406,7 @@ def main() -> None:
             records.append(record)
             if index % 50 == 0 or index == len(images):
                 print(f"Analyzed {index}/{len(images)} images", flush=True)
-    records.sort(key=lambda row: row["filename"])
+    records.sort(key=lambda row: row["relative_path"])
     config = {
         "source": str(source),
         "sample_width": args.sample_width,

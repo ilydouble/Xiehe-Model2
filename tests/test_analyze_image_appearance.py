@@ -1,5 +1,6 @@
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,17 @@ SPEC.loader.exec_module(analyzer)
 
 
 class AppearanceAnalysisTests(unittest.TestCase):
+    def test_discover_pngs_recurses_and_ignores_appledouble(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / "patient"
+            nested.mkdir()
+            expected = nested / "image.png"
+            expected.touch()
+            (nested / "._image.png").touch()
+            (root / "note.txt").touch()
+            self.assertEqual(analyzer.discover_pngs(root), [expected])
+
     def test_parse_pgm_preserves_whitespace_valued_first_pixel(self):
         pixels = bytes([10, 0, 100, 255])
         width, height, decoded = analyzer.parse_pgm(b"P5\n2 2\n255\n" + pixels)
