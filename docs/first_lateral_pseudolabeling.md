@@ -79,3 +79,15 @@ PYTHON_BIN=/path/to/python3 ./5-inference/run_pseudo_label_first_lateral.sh --ap
 5. 确认后清除该shape的 `pseudo_label`、`needs_review` 旗标。
 
 在全部复核完成前，不要把这些JSON并入正式训练集。
+
+## 当前全量输出（2026-09-08）
+
+输出目录为 `datasets/lateral_first_batch_pseudolabel_23cls`：
+
+- 处理384张严格配对图像；20张无同stem JSON的图片隔离；
+- 新增1,942个缺失polygon候选；100个类别没有可靠候选；
+- high 1,547、medium 231、low 164，三种等级都需要人工复核；
+- 354张具有完整C2-C6候选，30张至少缺一类；
+- `--audit-only` 全量检查通过，错误数0。
+
+以下6张完全没有C2-C6候选，应直接人工绘制：WANG_YANG两张、XU_LONG_YUE、YANG_HUI_JUN、YU_CHU_YI、ZHAO_WEN_QI。精确文件名可在 `review_queue.csv` 中筛选 `status=no_candidate` 查看。

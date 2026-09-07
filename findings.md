@@ -42,6 +42,10 @@
 - 仓库训练目录职责明确：`3-model_training` 放脊柱椎体Pose，`4-model_training_CFH` 放CFH/骨盆相关训练；联合骨盆三关键点脚本应位于后者。
 
 ## Research Findings
+- 全量候选输出位于 `datasets/lateral_first_batch_pseudolabel_23cls`：384份严格配对样本全部处理，新增1,942个缺失polygon，100个类别无候选；质量分级high 1,547、medium 231、low 164，所有等级均需人工复核。
+- C2-C6中，354/384张五类都有候选，30张至少缺一类；6张完全没有C2-C6候选：WANG_YANG两张、XU_LONG_YUE、YANG_HUI_JUN、YU_CHU_YI、ZHAO_WEN_QI，应优先人工补画。
+- 独立audit-only全量通过：manifest 384行、review queue 2,042行、原shape前缀保持、384个源图符号链接、所有新增四点/坐标/旗标和统计闭环均无错误。
+- `labelme_review/` 已生成384个扁平JSON和384个指向E盘原图的同名符号链接，且文件名无冲突；可直接把这一个目录交给LabelMe连续翻阅。
 - 12张正式试标（严重黑边4、轻中黑边4、无黑边4）共新增62个缺失polygon：high 48、medium 6、low 8；另有5个类别无可靠候选。逐张可视化显示大多数C2-C6落在正确椎体，BAO_QING缺C5/C6、SHI_HONG_YI缺C4-C6等难例被留为unresolved而没有强行补齐。
 - 试标输出完整性复核通过：12份输出JSON均保持原始shapes为完全相等的前缀，新增shape全为polygon且带needs_review；图像均为指向E盘原图的符号链接；新增四点全部位于原图边界内，错误0。
 - 当前Miniconda的torch报告MPS unavailable；即便参数写mps，Ultralytics实际predictor和模型参数仍落在CPU。因此全量本机推理预计需要约15-20分钟，脚本默认auto选择CPU是正确行为。
