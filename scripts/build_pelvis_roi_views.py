@@ -137,7 +137,7 @@ def compute_crop_box(
     height: int,
     filename: str,
     seed: int = 20260907,
-    margin: float = 2.0,
+    margin: float = 2.5,
     shift_jitter: float = 0.05,
     scale_jitter: float = 0.10,
     safety_margin: float = 0.03,
@@ -268,7 +268,7 @@ def load_source_records(dataset_root: Path) -> list[dict[str, Any]]:
 def plan_views(
     dataset_root: Path,
     seed: int = 20260907,
-    margin: float = 2.0,
+    margin: float = 2.5,
     shift_jitter: float = 0.05,
     scale_jitter: float = 0.10,
 ) -> list[dict[str, Any]]:
@@ -326,7 +326,7 @@ def build_dataset(
     output_root: Path,
     *,
     seed: int = 20260907,
-    margin: float = 2.0,
+    margin: float = 2.5,
     shift_jitter: float = 0.05,
     scale_jitter: float = 0.10,
     workers: int = 4,
@@ -442,7 +442,7 @@ def parse_args() -> argparse.Namespace:
         default=project_root / "datasets/yolo_pelvis_3kpt_roi_views",
     )
     parser.add_argument("--seed", type=int, default=20260907)
-    parser.add_argument("--margin", type=float, default=2.0)
+    parser.add_argument("--margin", type=float, default=2.5)
     parser.add_argument("--shift-jitter", type=float, default=0.05)
     parser.add_argument("--scale-jitter", type=float, default=0.10)
     parser.add_argument("--workers", type=int, default=4)
