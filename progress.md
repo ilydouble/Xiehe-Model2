@@ -186,6 +186,9 @@
 - Actions taken:
   - 用户已拷回第二批23类侧面脊柱训练权重，现要为第一批数据补标注。
   - 确认第一批路径仍可读；开始核对新权重与旧LabelMe目录，本轮不覆盖E盘原始JSON。
+  - 定位新run的best.pt，用Ultralytics实际加载确认为23类、4关键点Pose模型；训练记录的Pose mAP50-95最高0.92709。
+  - 盘点384份老JSON：C3-C6完全缺失，18个C2是股骨头circle而不是颈椎，现有C7-L5 polygon必须保留。
+  - 确认本机Miniconda base环境已具备torch/Ultralytics/OpenCV/Pillow，可执行小样本试标。
 
 ## Session: 2026-09-07（第一、二批图像外观比较）
 
@@ -309,6 +312,8 @@
 | 2026-09-07 | 股骨头分布脚本误读 AppleDouble JSON | 1 | 加入 `not name.startswith("._")` 过滤 |
 | 2026-09-07 | `jq` 查询审计标签时字段路径错误返回 null | 1 | 检查顶层结构后使用 `annotations.label_stats` |
 | 2026-09-07 | `xargs jq` 抽样管道被末端 `head` 提前关闭并报告SIGPIPE | 1 | 数据已正确取得；后续不再用会提前关流的同类管道 |
+
+| 2026-09-08 | 用 command -v -a 盘点Python环境时zsh将-v解析为命令 | 1 | 改用 type -a，定位到可用的Miniconda Python |
 
 ## 5-Question Reboot Check
 | Question | Answer |

@@ -42,6 +42,10 @@
 - 仓库训练目录职责明确：`3-model_training` 放脊柱椎体Pose，`4-model_training_CFH` 放CFH/骨盆相关训练；联合骨盆三关键点脚本应位于后者。
 
 ## Research Findings
+- 2026-09-08定位到用户新回传权重 \`3-model_training/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt\`（52,991,338 bytes，文件时间2026-09-08 00:36）；Ultralytics成功加载并确认task=pose、names=C2-C7/T1-T12/L1-L5、kpt_shape=[4,3]。
+- 回传run的 \`args.yaml\` 确认使用YOLO11l-Pose、300 epochs目标、imgsz 1280、batch 2、rect=true及无mosaic/mixup；结果表有162轮，Pose mAP50-95最高0.92709（epoch 112），符合早停后回传best权重的特征。
+- 本机Homebrew Python缺少推理依赖，但 \`/opt/miniconda3/bin/python3\` 已有torch 2.8.0、ultralytics 8.3.232、OpenCV 4.12.0、Pillow 11.3.0、NumPy 2.2.6，可直接执行本机试标。
+- 第一批共384份可解析JSON。C3-C6均为0；C2有18个circle，已知语义是股骨头辅助圆而不是颈椎；C7-T12/L1-L5大多为已有polygon，但各类有4-13份缺失。补标脚本应只填充缺失的目标polygon，不替换任何原shape；新的颈椎C2 polygon可与旧C2 circle同时保留，下游按shape_type区分。
 - 最终独立泄漏审计通过：源数据1,028张/1,023患者组，ROI 824张/819患者组；源患者跨split=0、源图跨split精确重复=0、ROI非train患者=0、ROI与val/test原图精确相同=0，错误列表为空。
 - `scripts/build_pelvis_roi_views.py --audit-only` 会重新计算全部源/ROI哈希并写 `datasets/yolo_pelvis_3kpt_roi_views/leakage_audit.json`，可在上传AutoDL后再次运行确认传输未破坏数据边界。
 - 新混合YAML训练规模为train 1,648视图（824原图+824 ROI）、val 102原图、test 102原图；训练校验器从源manifest确认总患者仍为1,023，ROI仅对应819个train患者。
