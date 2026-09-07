@@ -113,9 +113,94 @@ class PseudoLabelTests(unittest.TestCase):
             model.write_bytes(b"model")
             output = root / "output"
             output.mkdir()
-            args = type("Args", (), {"source": source, "model": model, "output": output})()
+            args = type(
+                "Args",
+                (),
+                {"source": source, "model": model, "output": output, "audit_only": False},
+            )()
             with self.assertRaises(FileExistsError):
                 MODULE.run(args)
+
+    def test_audit_accepts_preserved_source_and_review_only_append(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            output = root / "output"
+            patient = source / "P1"
+            candidate_dir = output / "candidates" / "P1"
+            patient.mkdir(parents=True)
+            candidate_dir.mkdir(parents=True)
+            image = patient / "image.png"
+            image.write_bytes(b"png")
+            source_annotation = {
+                "imageWidth": 100,
+                "imageHeight": 200,
+                "shapes": [
+                    {"label": label, "shape_type": "polygon", "points": [[10, index * 5], [20, index * 5], [20, index * 5 + 3], [10, index * 5 + 3]]}
+                    for index, label in enumerate(MODULE.CLASS_NAMES[1:], 1)
+                ],
+            }
+            source_json = image.with_suffix(".json")
+            source_json.write_text(json.dumps(source_annotation))
+            pseudo = MODULE.make_pseudo_shape(
+                self.candidate("C2", 10, 1, "original"),
+                [self.candidate("C2", 10, 1, "original")],
+                "low",
+                True,
+                "a" * 64,
+            )
+            output_annotation = json.loads(json.dumps(source_annotation))
+            output_annotation["shapes"].append(pseudo)
+            (candidate_dir / "image.json").write_text(json.dumps(output_annotation))
+            (candidate_dir / "image.png").symlink_to(image)
+            MODULE.write_csv(
+                output / "manifest.csv",
+                [{
+                    "relative_image": "P1/image.png",
+                    "source_json": str(source_json),
+                    "output_json": "candidates/P1/image.json",
+                    "existing_polygon_labels": ";".join(MODULE.CLASS_NAMES[1:]),
+                    "added_labels": "C2",
+                    "unresolved_labels": "",
+                    "high": 0,
+                    "medium": 0,
+                    "low": 1,
+                    "views": "original",
+                    "black_left_px": 0,
+                    "black_right_px": 0,
+                    "black_top_px": 0,
+                    "black_bottom_px": 0,
+                    "anchor_scores": "{}",
+                }],
+                [
+                    "relative_image", "source_json", "output_json",
+                    "existing_polygon_labels", "added_labels", "unresolved_labels",
+                    "high", "medium", "low", "views", "black_left_px",
+                    "black_right_px", "black_top_px", "black_bottom_px", "anchor_scores",
+                ],
+            )
+            MODULE.write_csv(
+                output / "review_queue.csv",
+                [{
+                    "relative_image": "P1/image.png", "label": "C2",
+                    "status": "review_required", "quality": "low", "box_conf": 0.5,
+                    "keypoint_conf": 0.9, "support": 1, "views": "original",
+                    "anatomy_ok": True,
+                }],
+                [
+                    "relative_image", "label", "status", "quality", "box_conf",
+                    "keypoint_conf", "support", "views", "anatomy_ok",
+                ],
+            )
+            (output / "summary.json").write_text(json.dumps({
+                "counts": {
+                    "processed_samples": 1, "added_shapes": 1,
+                    "unresolved_shapes": 0, "quality": {"low": 1},
+                }
+            }))
+            report = MODULE.audit_output(source, output)
+            self.assertEqual(report["status"], "passed")
+            self.assertTrue(report["checks"]["existing_shape_prefix_preserved"])
 
 
 if __name__ == "__main__":

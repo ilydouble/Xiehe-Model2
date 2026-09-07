@@ -603,12 +603,142 @@ def validate_model(model: Any) -> dict[int, str]:
     return names
 
 
+def audit_output(source: Path, output: Path) -> dict[str, Any]:
+    """Audit a generated review set without importing inference dependencies."""
+    source = source.resolve()
+    output = output.resolve()
+    summary_path = output / "summary.json"
+    manifest_path = output / "manifest.csv"
+    review_path = output / "review_queue.csv"
+    for path in (summary_path, manifest_path, review_path):
+        if not path.is_file():
+            raise FileNotFoundError(f"Required output file not found: {path}")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    with manifest_path.open(encoding="utf-8", newline="") as handle:
+        manifest = list(csv.DictReader(handle))
+    with review_path.open(encoding="utf-8", newline="") as handle:
+        review = list(csv.DictReader(handle))
+
+    errors: list[str] = []
+    added_counts: Counter[str] = Counter()
+    unresolved_counts: Counter[str] = Counter()
+    quality_counts: Counter[str] = Counter()
+    for row in manifest:
+        relative_image = Path(row["relative_image"])
+        source_image = source / relative_image
+        source_json = source_image.with_suffix(".json")
+        output_image = output / "candidates" / relative_image
+        output_json = output / row["output_json"]
+        prefix = str(relative_image)
+        if not source_image.is_file() or not source_json.is_file():
+            errors.append(f"{prefix}: source pair missing")
+            continue
+        if not output_image.is_symlink() or output_image.resolve() != source_image.resolve():
+            errors.append(f"{prefix}: image symlink does not resolve to source")
+        if not output_json.is_file():
+            errors.append(f"{prefix}: output JSON missing")
+            continue
+        try:
+            original = load_annotation(source_json)
+            candidate = load_annotation(output_json)
+        except Exception as exc:
+            errors.append(f"{prefix}: JSON parse failed: {exc}")
+            continue
+        original_shapes = original["shapes"]
+        candidate_shapes = candidate["shapes"]
+        if candidate_shapes[: len(original_shapes)] != original_shapes:
+            errors.append(f"{prefix}: existing shape prefix changed")
+        appended = candidate_shapes[len(original_shapes):]
+        existing_labels = set(target_polygon_shapes(original))
+        appended_labels: list[str] = []
+        for shape in appended:
+            label = str(shape.get("label") or "").strip().upper()
+            appended_labels.append(label)
+            added_counts[label] += 1
+            flags = shape.get("flags") or {}
+            quality = next(
+                (
+                    key.removeprefix("quality_")
+                    for key, value in flags.items()
+                    if key.startswith("quality_") and value
+                ),
+                "missing",
+            )
+            quality_counts[quality] += 1
+            points = shape.get("points")
+            if label not in CLASS_SET or label in existing_labels:
+                errors.append(f"{prefix}: invalid or non-missing appended label {label}")
+            if shape.get("shape_type") != "polygon" or not isinstance(points, list) or len(points) != 4:
+                errors.append(f"{prefix}: appended {label} is not a four-point polygon")
+                continue
+            if not flags.get("pseudo_label") or not flags.get("needs_review"):
+                errors.append(f"{prefix}: appended {label} lacks review flags")
+            width = float(candidate.get("imageWidth") or 0)
+            height = float(candidate.get("imageHeight") or 0)
+            converted = [(float(point[0]), float(point[1])) for point in points]
+            if len(set(converted)) != 4:
+                errors.append(f"{prefix}: appended {label} has duplicate points")
+            if any(not 0 <= x <= width or not 0 <= y <= height for x, y in converted):
+                errors.append(f"{prefix}: appended {label} is out of bounds")
+        recorded_added = [value for value in row["added_labels"].split(";") if value]
+        if appended_labels != recorded_added:
+            errors.append(f"{prefix}: manifest added labels differ from JSON")
+        unresolved = [value for value in row["unresolved_labels"].split(";") if value]
+        for label in unresolved:
+            unresolved_counts[label] += 1
+        coverage = existing_labels | set(appended_labels) | set(unresolved)
+        if coverage != CLASS_SET:
+            errors.append(f"{prefix}: class coverage accounting is incomplete")
+
+    expected_counts = summary.get("counts", {})
+    if len(manifest) != expected_counts.get("processed_samples"):
+        errors.append("Manifest row count differs from summary")
+    if len(review) != sum(added_counts.values()) + sum(unresolved_counts.values()):
+        errors.append("Review queue row count differs from added+unresolved counts")
+    if sum(added_counts.values()) != expected_counts.get("added_shapes"):
+        errors.append("Added shape count differs from summary")
+    if sum(unresolved_counts.values()) != expected_counts.get("unresolved_shapes"):
+        errors.append("Unresolved shape count differs from summary")
+    if dict(sorted(quality_counts.items())) != expected_counts.get("quality"):
+        errors.append("Quality counts differ from summary")
+
+    report = {
+        "schema_version": 1,
+        "status": "passed" if not errors else "failed",
+        "source": str(source),
+        "output": str(output),
+        "checks": {
+            "manifest_rows": len(manifest),
+            "review_rows": len(review),
+            "added_shapes": sum(added_counts.values()),
+            "unresolved_shapes": sum(unresolved_counts.values()),
+            "quality": dict(sorted(quality_counts.items())),
+            "existing_shape_prefix_preserved": not any(
+                "existing shape prefix changed" in error for error in errors
+            ),
+            "source_image_symlinks_valid": not any("symlink" in error for error in errors),
+        },
+        "errors": errors,
+    }
+    (output / "audit_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    if errors:
+        raise ValueError(f"Pseudo-label output audit failed with {len(errors)} errors")
+    return report
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     source = args.source.resolve()
     model_path = args.model.resolve()
     output = args.output.resolve()
     if not source.is_dir():
         raise FileNotFoundError(f"Source directory not found: {source}")
+    if args.audit_only:
+        if not output.is_dir():
+            raise FileNotFoundError(f"Output directory not found for audit: {output}")
+        return audit_output(source, output)
     if not model_path.is_file():
         raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
     if output.exists():
@@ -813,6 +943,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "anchor_scores",
             ],
         )
+        review_priority = {"no_candidate": 0, "review_required": 1}
+        quality_priority = {"unresolved": 0, "low": 1, "medium": 2, "high": 3}
+        review_rows.sort(
+            key=lambda row: (
+                review_priority[row["status"]],
+                quality_priority[row["quality"]],
+                row["relative_image"],
+                CLASS_NAMES.index(row["label"]),
+            )
+        )
         write_csv(
             staging / "review_queue.csv",
             review_rows,
@@ -906,6 +1046,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--preview-limit", type=int, default=0)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument(
+        "--audit-only",
+        action="store_true",
+        help="Audit an existing output without loading the model or running inference",
+    )
     args = parser.parse_args()
     if args.limit is not None and args.limit <= 0:
         parser.error("--limit must be positive")
@@ -913,6 +1058,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("imgsz/max-det must be positive and preview-limit non-negative")
     if not 0 <= args.predict_conf <= args.candidate_conf <= 1:
         parser.error("Require 0 <= predict-conf <= candidate-conf <= 1")
+    if args.apply and args.audit_only:
+        parser.error("--apply and --audit-only are mutually exclusive")
     return args
 
 

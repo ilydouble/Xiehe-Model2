@@ -341,6 +341,7 @@
 
 | 2026-09-08 | 用 command -v -a 盘点Python环境时zsh将-v解析为命令 | 1 | 改用 type -a，定位到可用的Miniconda Python |
 | 2026-09-08 | 首次提交补标注脚本时沙箱拒绝创建.git/index.lock | 1 | 使用受控权限仅暂存并提交本任务4个文件 |
+| 2026-09-08 | 新增audit-only后旧覆盖拒绝测试的简化Args缺少audit_only字段 | 1 | 测试夹具补充audit_only=False，生产参数解析无缺失 |
 
 ## 5-Question Reboot Check
 | Question | Answer |

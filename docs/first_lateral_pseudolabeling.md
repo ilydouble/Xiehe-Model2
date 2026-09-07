@@ -50,6 +50,12 @@
 ./5-inference/run_pseudo_label_first_lateral.sh --apply
 ```
 
+生成后执行独立完整性审计：
+
+```bash
+./5-inference/run_pseudo_label_first_lateral.sh --audit-only
+```
+
 若本机Python位置不同，可显式指定：
 
 ```bash
