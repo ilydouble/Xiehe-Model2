@@ -234,11 +234,18 @@
   - 修正后5项测试、语法检查和824张真实dry-run全部通过；预演得到旧批268、新批556、819个train患者组，未写正式数据。
 
 ### Phase 23: 生成侧面三关键点ROI训练视图
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 初始边距2.0的真实预演得到ROI面积中位数38.80%、P10 28.54%、P90 54.38%，无全画布ROI；正式生成前继续复核该尺度及代表样本。
   - 对边距2.25、2.5、2.75做全量预演；2.5的ROI面积中位数50.06%，最接近正面约53%的已验证范围，因此将默认值调整为2.5。
   - 视觉复核旧/新批各自最小面积与中位面积ROI共4张，均保留腰椎、骶骨、骨盆及足够上下文，未见裁掉三点目标或变成过紧局部切片。
+  - 正式生成 `datasets/yolo_pelvis_3kpt_roi_views`：824张ROI、824份标签、819个train患者组，旧批268、新批556，目录约1.5GB。
+  - 派生目录只存在 `images/train` 和 `labels/train`，没有val/test目录；逐图复核PNG尺寸、源/输出哈希、14字段、类别、坐标和三点可见性，错误数0。
+
+### Phase 24: 训练入口与AutoDL说明
+- **Status:** in_progress
+- Actions taken:
+  - 准备新增原图+ROI多train目录YAML，并扩展训练前校验以理解派生manifest和1648个训练视图。
 
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
