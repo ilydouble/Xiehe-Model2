@@ -229,6 +229,7 @@
 - **Status:** in_progress
 - Actions taken:
   - 准备实现只读取train、拒绝输出覆盖、临时目录原子构建、标签同步换算及manifest逐图哈希的生成器。
+  - 初版生成器和4项测试通过；真实824张dry-run暴露一个bbox变换后的y边界特例，已停止在预演阶段、未生成正式数据，进入针对性修正。
 
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
