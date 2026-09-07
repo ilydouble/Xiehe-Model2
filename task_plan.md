@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集，并把第一、第二批有效骨盆标注统一成 `CFH + S1两端点` 的三关键点YOLO Pose数据集，交付可复现转换器和AutoDL训练脚本。
 
 ## Current Phase
-Phase 22
+Phase 23
 
 ## Phases
 
@@ -132,16 +132,16 @@ Phase 22
 - **Status:** complete
 
 ### Phase 22: ROI生成器与自动测试
-- [ ] 实现三关键点YOLO Pose ROI生成器
-- [ ] 覆盖裁剪框、标签换算、确定性和泄漏门槛测试
-- [ ] 通过语法与单元测试
-- **Status:** in_progress
+- [x] 实现三关键点YOLO Pose ROI生成器
+- [x] 覆盖裁剪框、标签换算、确定性和泄漏门槛测试
+- [x] 通过语法与单元测试
+- **Status:** complete
 
 ### Phase 23: 生成侧面三关键点ROI训练视图
 - [ ] 只从824张train原图生成一对一ROI图像与标签
 - [ ] 输出manifest、汇总与混合训练YAML
 - [ ] 视觉复核代表性ROI并全量检查标签几何
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 24: 训练入口与AutoDL说明
 - [ ] 让三关键点训练脚本支持原图或ROI混合数据入口

@@ -39,6 +39,8 @@
 - 仓库训练目录职责明确：`3-model_training` 放脊柱椎体Pose，`4-model_training_CFH` 放CFH/骨盆相关训练；联合骨盆三关键点脚本应位于后者。
 
 ## Research Findings
+- 初版真实dry-run发现 `old__DAI_WEI_ZHONG...` 的六位小数YOLO框底边比原图多约0.0027 px；这是序列化舍入而非标注实质越界。ROI变换现先把源bbox像素边界裁到原图范围，并用该真实数值加入回归测试。
+- 修正后824张train全部可规划ROI；默认边距2.0的实际ROI面积分布为最小18.36%、P10 28.54%、中位38.80%、P90 54.38%、最大83.39%。实际中位数低于理论49%，主要因骨盆位于图像下部、ROI底边受画布截断。
 - 三点ROI方案固定为：对象框每侧外扩2倍（总目标宽高约5倍），确定性平移扰动5%、尺度扰动10%、关键点/原框安全余量3%；其目标是接近正面约53%的ROI面积，而非生成仅占约4%的过紧骨盆切片。
 - 输出采用独立 `datasets/yolo_pelvis_3kpt_roi_views`，只含 `images/train` 与 `labels/train`；混合YAML同时引用原数据train和ROI train，val/test只引用原数据，原联合数据集及split不改写。
 - 当前训练校验器只理解单一数据根目录，后续需在不依赖PyYAML的dry-run路径中显式识别混合配置和ROI manifest，且把824个派生视图计为train视图而不是患者或新病例。

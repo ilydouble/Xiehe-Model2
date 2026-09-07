@@ -226,10 +226,17 @@
   - 当前Python没有Ultralytics/Pillow；生成器决定使用标准库解析标签与PNG尺寸，并调用现有FFmpeg完成PNG裁剪。
 
 ### Phase 22: ROI生成器与自动测试
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 准备实现只读取train、拒绝输出覆盖、临时目录原子构建、标签同步换算及manifest逐图哈希的生成器。
   - 初版生成器和4项测试通过；真实824张dry-run暴露一个bbox变换后的y边界特例，已停止在预演阶段、未生成正式数据，进入针对性修正。
+  - 定位到一例六位小数YOLO框的底边超出原图约0.0027 px；在变换前把源框像素边界安全裁到原图范围，并新增真实数值回归测试。
+  - 修正后5项测试、语法检查和824张真实dry-run全部通过；预演得到旧批268、新批556、819个train患者组，未写正式数据。
+
+### Phase 23: 生成侧面三关键点ROI训练视图
+- **Status:** in_progress
+- Actions taken:
+  - 当前默认边距2.0的真实预演得到ROI面积中位数38.80%、P10 28.54%、P90 54.38%，无全画布ROI；正式生成前继续复核该尺度及代表样本。
 
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
