@@ -209,7 +209,7 @@ def main() -> None:
         from ultralytics import YOLO
     except ImportError as exc:
         raise RuntimeError(
-            "Ultralytics is not installed. Run: pip install -r 3-model_training/requirements.txt"
+            "Ultralytics is not installed. Run: pip install -r 4-model_training_CFH/requirements.txt"
         ) from exc
 
     if resume_path is not None:

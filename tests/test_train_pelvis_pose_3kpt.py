@@ -6,7 +6,7 @@ from argparse import Namespace
 from pathlib import Path
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / "3-model_training/train_pelvis_pose_3kpt.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "4-model_training_CFH/train_pelvis_pose_3kpt.py"
 SPEC = importlib.util.spec_from_file_location("train_pelvis_pose_3kpt", SCRIPT)
 trainer = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

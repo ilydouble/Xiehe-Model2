@@ -19,6 +19,7 @@
 - 1,028行标签中569个CFH来自直接point、459个来自FH-1/FH-2中点；全量14字段、类别0、坐标范围、bbox和可见性检查均通过。
 - 骨盆训练入口默认从 `yolo11m-pose.pt` 初始化，也可传入刚训练的23类侧面模型 `best.pt`；后者可迁移侧位X线骨干特征，但1类/3点Pose head会按新data.yaml重建，不能直接沿用旧head推理。
 - 三点任务仍保留 `rect=True`、关闭mosaic/mixup/copy-paste、只做轻微旋转平移缩放和亮度变化；水平翻转因data.yaml已有正确flip_idx而可设为0.5。
+- 仓库训练目录职责明确：`3-model_training` 放脊柱椎体Pose，`4-model_training_CFH` 放CFH/骨盆相关训练；联合骨盆三关键点脚本应位于后者。
 
 ## Research Findings
 - 第一批原始数据现位于 `/Volumes/E/spine_data/LAT202511`；复核得到384个JSON、404张PNG、370个CFH point、345个S1 line，335个JSON同时具备直接CFH和有效S1 line，S2为0。

@@ -39,16 +39,16 @@ python3 scripts/convert_combined_pelvis_pose.py \
 在项目根目录安装与检查：
 
 ```bash
-pip install -r 3-model_training/requirements.txt
+pip install -r 4-model_training_CFH/requirements.txt
 
-python3 3-model_training/train_pelvis_pose_3kpt.py --dry-run
+python3 4-model_training_CFH/train_pelvis_pose_3kpt.py --dry-run
 ```
 
 如果先完成了 23 类侧面脊柱模型训练，推荐用其 `best.pt` 初始化。这会迁移已经学到的侧位片
 特征；由于本任务是 1 类、3 关键点，Ultralytics 会按新数据配置重建并训练新的 Pose head：
 
 ```bash
-python3 3-model_training/train_pelvis_pose_3kpt.py \
+python3 4-model_training_CFH/train_pelvis_pose_3kpt.py \
   --model runs/pose/yolo11m_lateral_23cls/weights/best.pt \
   --device 0 \
   --imgsz 1280 \
@@ -62,7 +62,7 @@ python3 3-model_training/train_pelvis_pose_3kpt.py \
 断点续训：
 
 ```bash
-python3 3-model_training/train_pelvis_pose_3kpt.py --resume
+python3 4-model_training_CFH/train_pelvis_pose_3kpt.py --resume
 ```
 
 默认输出目录为 `runs/pose/yolo11m_pelvis_3kpt_all/`，最终权重位于

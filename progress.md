@@ -145,6 +145,7 @@
   - 复跑联合骨盆真实数据dry-run，确认824/102/102、1,028对象、1,023患者组。
   - 检查Python语法、Git空白错误和数据忽略规则，均通过；3.7 GiB数据目录不会进入Git。
   - 确认用户已有CFH训练脚本修改和未跟踪 `analysis/` 产物未被触碰或提交。
+  - 用户指出训练目录职责后，将骨盆三关键点训练入口从脊柱目录移至 `4-model_training_CFH`，同步修正测试、说明和独立依赖文件；脊柱23类入口继续保留在 `3-model_training`。
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
