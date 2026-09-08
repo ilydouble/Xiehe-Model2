@@ -330,6 +330,8 @@ def render_preview(
     only_c2c6: bool = False,
     original_missing: Sequence[str] = (),
     c2_boundary: dict[str, Any] | None = None,
+    baseline_name: str = "原始",
+    sample_warning: str = "",
 ) -> dict[str, Any]:
     with Image.open(source_path) as opened:
         opened.load()
@@ -370,7 +372,15 @@ def render_preview(
         missing_text = ", ".join(original_missing) if original_missing else "无"
         if len(missing_text) > 78:
             missing_text = missing_text[:75] + "..."
-        draw.text((20, 128), f"原始C7-L5缺级提示：{missing_text}（只提示，不自动排除，也不由模型补）", font=small_font, fill=(255, 190, 65) if original_missing else MUTED)
+        baseline_line = f"{baseline_name}C7-L5缺级提示：{missing_text}（只提示，不自动排除，也不由模型补）"
+        if sample_warning:
+            baseline_line += f"  |  {sample_warning}"
+        if len(baseline_line) > 128:
+            baseline_line = baseline_line[:125] + "..."
+        draw.text(
+            (20, 128), baseline_line, font=small_font,
+            fill=(255, 190, 65) if original_missing or sample_warning else MUTED,
+        )
     else:
         draw.text((20, 94), f"没有生成候选：{unresolved_text}  |  所有模型补标都必须人工复核", font=body_font, fill=risk_color)
         draw.text((20, 128), "青=第一批原始人工polygon；绿=high；橙=medium；红=low。右图数字1→4为Pose四角点顺序。", font=small_font, fill=MUTED)
@@ -382,7 +392,7 @@ def render_preview(
     edit_text = "此图只用于接受/拒绝判断；待确认后再生成严格C2-C6 LabelMe数据。" if only_c2c6 else "此图只用于核验；实际修改请在 LabelMe 候选 JSON 中完成。"
     draw.text((760, 1470), edit_text, font=small_font, fill=(255, 190, 65))
     if only_c2c6:
-        draw.text((760, 1510), "青=原始人工；绿/橙/红=仅C2-C6模型候选；没有显示任何其它类别伪标签。", font=small_font, fill=MUTED)
+        draw.text((760, 1510), f"青={baseline_name}；绿/橙/红=仅C2-C6模型候选；没有显示任何其它类别伪标签。", font=small_font, fill=MUTED)
     draw.text((20, 1688), "REVIEW REQUIRED — 图上 high 不等于已经确认。", font=body_font, fill=(255, 190, 65))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
