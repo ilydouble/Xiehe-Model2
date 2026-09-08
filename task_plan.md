@@ -274,16 +274,16 @@ Phase 43
 - **Status:** complete
 
 ### Phase 45: 联合数据集生成与患者级拆分
-- [ ] 只纳入第一批人工accepted且来源正确、非重复样本
-- [ ] 与第二批合并并按患者确定性拆分train/val/test
-- [ ] 输出YOLO Pose标签、YAML、manifest、排除清单和构建报告
-- **Status:** in_progress
+- [x] 只纳入第一批人工accepted且来源正确、非重复样本
+- [x] 与第二批合并并按患者确定性拆分train/val/test
+- [x] 输出YOLO Pose标签、YAML、manifest、排除清单和构建报告
+- **Status:** complete
 
 ### Phase 46: 训练入口与最终验收
-- [ ] 更新或新增与联合类别契约一致的AutoDL训练脚本
-- [ ] 审计配对、类别、坐标、凸四边形、重复与患者泄漏
-- [ ] 运行测试和dry-run并提交全部本轮变更
-- **Status:** pending
+- [x] 更新或新增与联合类别契约一致的AutoDL训练脚本
+- [x] 审计配对、类别、坐标、凸四边形、重复与患者泄漏
+- [x] 运行测试和dry-run并提交全部本轮变更
+- **Status:** complete
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
