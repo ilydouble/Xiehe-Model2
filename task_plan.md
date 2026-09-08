@@ -4,7 +4,7 @@
 完成第二批23类侧面脊柱数据集和三关键点骨盆数据集；当前纠正第一批补标对象：核对用户指定的 `datasets/yolo_corner`，判断此前基于原始LAT配对生成的C2-C6复核包与实际训练数据集之间的偏差，再按正确数据口径处理。
 
 ## Current Phase
-Phase 41 (awaiting confirmation)
+Phase 41
 
 ## Phases
 
@@ -250,7 +250,7 @@ Phase 41 (awaiting confirmation)
 - [ ] 按确认后的yolo_corner口径生成复核产物
 - [ ] 完整性审计与抽样视觉检查
 - [ ] 提交代码和文档并说明旧包处置方式
-- **Status:** pending（等待用户确认按建议重做）
+- **Status:** in_progress
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
@@ -292,6 +292,8 @@ Phase 41 (awaiting confirmation)
 | 直接按模块名运行测试时tests目录不是Python包 | 1 | 改为直接运行测试文件 |
 | 抽样索引脚本使用不存在的`stem`列 | 1 | 查看CSV表头后改用`filename`和`preview`列 |
 | yolo_corner到LAT逐图全量SHA-256核验超过30秒 | 1 | 暂不重复全量哈希；先用文件名、同stem配对和转换器逻辑确定集合偏差，必要时后续用大小预筛或分批哈希 |
+| 本轮首次读取planning skill时工具调用JavaScript参数拼写错误 | 2 | 停止尝试变体，改用已验证的`exec_command`标准参数后完整读取skill |
+| 更新Phase 41状态时补丁仍按旧Current Phase文本匹配 | 1 | 读取当前文件后按`Phase 41 (awaiting confirmation)`精确更新；失败补丁没有产生半成品 |
 | 提交yolo_corner核对结论时无法创建`.git/index.lock` | 1 | 使用受控权限并仅暂存本轮3个规划记录文件 |
 | 搜索本机Ultralytics源码时zsh未匹配系统路径glob | 1 | 已确认当前Python无Ultralytics；不重复该glob，训练YAML按已有已验证的正面多目录模式生成 |
 | 真实824张ROI dry-run在标签变换时报告bbox y边界越界 | 1 | 单元测试通过但真实标签存在边界/舍入特例；正在定位具体样本并收紧裁剪包含与数值容差规则 |

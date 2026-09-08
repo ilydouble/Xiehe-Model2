@@ -412,3 +412,4 @@
 - 漏掉的10张是原始LAT无同stem JSON但被旧转换器套用患者目录第一份JSON后纳入yolo_corner的图；这些现有18类标签需视为高风险，而不是简单补C2-C6后直接训练。
 - Phase 39完成：前一版384张LAT复核包与yolo_corner仅358张重合，多26张、漏10张；yolo_corner真实规模为368张且实际基线是YOLO四关键点标签。
 - Phase 40完成：确认前一版不能作为yolo_corner最终复核包。建议以368张现有图/YOLO标签重新渲染，只叠加C2-C6，并显式标记10张源标注错配风险、重复图和跨split患者；原yolo_corner保持只读，人工复核后再按患者重建split。
+- 用户已确认按建议纠正；Phase 41开始，以yolo_corner的368张图及其实际YOLO四关键点标签为唯一复核基线。
