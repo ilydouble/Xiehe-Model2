@@ -60,6 +60,41 @@ class TrainingScriptTests(unittest.TestCase):
         self.assertEqual(result["mixup"], 0.0)
         self.assertEqual(result["fliplr"], 0.5)
 
+    def test_validate_mixed_train_keeps_holdout_original_only(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            datasets = base / "datasets"
+            source = datasets / "yolo_lateral_reviewed_combined_20cls"
+            source.mkdir(parents=True)
+            self.build_dataset(source)
+            roi = datasets / "yolo_lateral_reviewed_combined_20cls_black_roi"
+            (roi / "images/train").mkdir(parents=True)
+            (roi / "labels/train").mkdir(parents=True)
+            (roi / "images/train/blackroi__train_0.png").write_bytes(b"png")
+            (roi / "labels/train/blackroi__train_0.txt").write_text(valid_line(0) + "\n", encoding="utf-8")
+            (roi / "manifest.csv").write_text(
+                "patient_id,source_split,source_image,output_image\n"
+                "train:p0,train,images/train/train_0.png,images/train/blackroi__train_0.png\n",
+                encoding="utf-8",
+            )
+            config_dir = base / "3-model_training"
+            config_dir.mkdir()
+            names = "\n".join(f"  {index}: {name}" for index, name in enumerate(trainer.CLASS_NAMES))
+            yaml = config_dir / "mixed.yaml"
+            yaml.write_text(
+                "path: ../datasets\ntrain:\n"
+                "  - yolo_lateral_reviewed_combined_20cls/images/train\n"
+                "  - yolo_lateral_reviewed_combined_20cls_black_roi/images/train\n"
+                "val: yolo_lateral_reviewed_combined_20cls/images/val\n"
+                "test: yolo_lateral_reviewed_combined_20cls/images/test\n"
+                f"nc: 20\nnames:\n{names}\nkpt_shape: [4, 3]\n",
+                encoding="utf-8",
+            )
+            report = trainer.validate_dataset(yaml)
+            self.assertEqual(report["splits"]["train"]["images"], 21)
+            self.assertEqual(report["splits"]["val"]["images"], 2)
+            self.assertEqual(report["roi_patient_groups"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

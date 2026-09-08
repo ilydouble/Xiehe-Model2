@@ -39,6 +39,51 @@ def parse_yaml_names(yaml_text: str) -> list[str]:
     return [name for _, name in sorted(pairs)]
 
 
+def yaml_scalar(value: str) -> str:
+    return value.split("#", 1)[0].strip().strip("'\"")
+
+
+def dataset_paths(data_yaml: Path) -> tuple[Path, dict[str, list[Path]]]:
+    """Parse the path/train/val/test subset used by the dataset YAML."""
+    text = data_yaml.read_text(encoding="utf-8")
+    root_value = ""
+    entries: dict[str, list[str]] = {split: [] for split in ("train", "val", "test")}
+    current_list = ""
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not raw_line.startswith((" ", "\t")) and ":" in stripped:
+            key, value = stripped.split(":", 1)
+            current_list = ""
+            if key == "path":
+                root_value = yaml_scalar(value)
+            elif key in entries:
+                scalar = yaml_scalar(value)
+                if scalar:
+                    entries[key].append(scalar)
+                else:
+                    current_list = key
+        elif current_list and stripped.startswith("-"):
+            scalar = yaml_scalar(stripped[1:])
+            if scalar:
+                entries[current_list].append(scalar)
+    root = (data_yaml.parent / root_value).resolve() if root_value else data_yaml.parent.resolve()
+    for split in entries:
+        if not entries[split]:
+            entries[split] = [f"images/{split}"]
+    return root, {split: [(root / value).resolve() for value in values] for split, values in entries.items()}
+
+
+def label_dir_for(image_dir: Path) -> Path:
+    parts = list(image_dir.parts)
+    indices = [index for index, part in enumerate(parts) if part == "images"]
+    if not indices:
+        raise ValueError(f"Image path has no images component: {image_dir}")
+    parts[indices[-1]] = "labels"
+    return Path(*parts)
+
+
 def validate_patient_splits(root: Path) -> dict[str, int]:
     manifest = root / "manifest.csv"
     if not manifest.is_file():
@@ -69,61 +114,72 @@ def validate_dataset(data_yaml: Path) -> dict[str, Any]:
     if any(name in names for name in ("C3", "C4", "C5", "C6")):
         raise ValueError("C3-C6 must not be present")
 
-    root = data_yaml.parent
+    root, split_paths = dataset_paths(data_yaml)
     report: dict[str, Any] = {"root": str(root), "splits": {}, "objects": 0}
     all_ids: set[int] = set()
     split_class_counts: dict[str, Counter[int]] = {}
+    dataset_roots: dict[str, Path] = {}
     for split in ("train", "val", "test"):
-        image_dir = root / "images" / split
-        label_dir = root / "labels" / split
-        if not image_dir.is_dir() or not label_dir.is_dir():
-            raise FileNotFoundError(f"Missing image/label directory for split: {split}")
-        images = {path.stem: path for path in image_dir.glob("*.png") if not path.name.startswith("._")}
-        labels = {path.stem: path for path in label_dir.glob("*.txt") if not path.name.startswith("._")}
-        if set(images) != set(labels):
-            raise ValueError(
-                f"Image/label mismatch in {split}: "
-                f"image_only={sorted(set(images) - set(labels))[:5]}, "
-                f"label_only={sorted(set(labels) - set(images))[:5]}"
-            )
         counts: Counter[int] = Counter()
-        for path in labels.values():
-            lines = path.read_text(encoding="utf-8").splitlines()
-            if not lines:
-                raise ValueError(f"Empty label file: {path}")
-            image_classes: set[int] = set()
-            for line_number, line in enumerate(lines, 1):
-                location = f"{path}:{line_number}"
-                parts = line.split()
-                if len(parts) != EXPECTED_FIELDS:
-                    raise ValueError(f"{location}: expected {EXPECTED_FIELDS} fields, got {len(parts)}")
-                try:
-                    class_id = int(parts[0])
-                    values = [float(value) for value in parts[1:]]
-                except ValueError as exc:
-                    raise ValueError(f"{location}: non-numeric value") from exc
-                if not 0 <= class_id < NUM_CLASSES:
-                    raise ValueError(f"{location}: class id {class_id} is outside [0, {NUM_CLASSES - 1}]")
-                if class_id in image_classes:
-                    raise ValueError(f"{location}: duplicate class in one image")
-                image_classes.add(class_id)
-                coordinate_indices = [0, 1, 2, 3, 4, 5, 7, 8, 10, 11, 13, 14]
-                if any(not 0.0 <= values[index] <= 1.0 for index in coordinate_indices):
-                    raise ValueError(f"{location}: coordinate outside [0, 1]")
-                if values[2] <= 0 or values[3] <= 0:
-                    raise ValueError(f"{location}: non-positive bounding-box size")
-                if [values[index] for index in (6, 9, 12, 15)] != [2.0] * 4:
-                    raise ValueError(f"{location}: expected four visible keypoints")
-                points = [(values[index], values[index + 1]) for index in (4, 7, 10, 13)]
-                validate_convex_keypoints(points, location)
-                counts[class_id] += 1
-                all_ids.add(class_id)
+        images_total = 0
+        views: dict[str, dict[str, int]] = {}
+        all_stems: set[str] = set()
+        for image_dir in split_paths[split]:
+            label_dir = label_dir_for(image_dir)
+            if not image_dir.is_dir() or not label_dir.is_dir():
+                raise FileNotFoundError(f"Missing image/label directory for split: {split}: {image_dir}")
+            dataset_root = image_dir.parent.parent
+            dataset_roots[dataset_root.name] = dataset_root
+            images = {path.stem: path for path in image_dir.glob("*.png") if not path.name.startswith("._")}
+            labels = {path.stem: path for path in label_dir.glob("*.txt") if not path.name.startswith("._")}
+            if set(images) != set(labels):
+                raise ValueError(f"Image/label mismatch in {split}: image_only={sorted(set(images) - set(labels))[:5]}, label_only={sorted(set(labels) - set(images))[:5]}")
+            duplicated = sorted(all_stems & set(images))
+            if duplicated:
+                raise ValueError(f"Duplicate stems across {split} views: {duplicated[:5]}")
+            all_stems.update(images)
+            view_objects = 0
+            for path in labels.values():
+                lines = path.read_text(encoding="utf-8").splitlines()
+                if not lines:
+                    raise ValueError(f"Empty label file: {path}")
+                image_classes: set[int] = set()
+                for line_number, line in enumerate(lines, 1):
+                    location = f"{path}:{line_number}"
+                    parts = line.split()
+                    if len(parts) != EXPECTED_FIELDS:
+                        raise ValueError(f"{location}: expected {EXPECTED_FIELDS} fields, got {len(parts)}")
+                    try:
+                        class_id = int(parts[0])
+                        values = [float(value) for value in parts[1:]]
+                    except ValueError as exc:
+                        raise ValueError(f"{location}: non-numeric value") from exc
+                    if not 0 <= class_id < NUM_CLASSES:
+                        raise ValueError(f"{location}: class id {class_id} is outside [0, {NUM_CLASSES - 1}]")
+                    if class_id in image_classes:
+                        raise ValueError(f"{location}: duplicate class in one image")
+                    image_classes.add(class_id)
+                    coordinate_indices = [0, 1, 2, 3, 4, 5, 7, 8, 10, 11, 13, 14]
+                    if any(not 0.0 <= values[index] <= 1.0 for index in coordinate_indices):
+                        raise ValueError(f"{location}: coordinate outside [0, 1]")
+                    if values[2] <= 0 or values[3] <= 0:
+                        raise ValueError(f"{location}: non-positive bounding-box size")
+                    if [values[index] for index in (6, 9, 12, 15)] != [2.0] * 4:
+                        raise ValueError(f"{location}: expected four visible keypoints")
+                    points = [(values[index], values[index + 1]) for index in (4, 7, 10, 13)]
+                    validate_convex_keypoints(points, location)
+                    counts[class_id] += 1
+                    all_ids.add(class_id)
+                    view_objects += 1
+            views[dataset_root.name] = {"images": len(images), "objects": view_objects}
+            images_total += len(images)
         split_class_counts[split] = counts
         split_objects = sum(counts.values())
         report["splits"][split] = {
-            "images": len(images),
+            "images": images_total,
             "objects": split_objects,
             "classes": {CLASS_NAMES[class_id]: counts[class_id] for class_id in range(NUM_CLASSES)},
+            "views": views,
         }
         report["objects"] += split_objects
     if all_ids != set(range(NUM_CLASSES)):
@@ -131,7 +187,25 @@ def validate_dataset(data_yaml: Path) -> dict[str, Any]:
     for split in ("val", "test"):
         if any(split_class_counts[split][class_id] == 0 for class_id in FOCUS_CLASS_IDS):
             raise ValueError(f"{split} must contain both C2 and C7 for focused evaluation")
-    report["patient_groups"] = validate_patient_splits(root)
+    source_root = dataset_roots.get("yolo_lateral_reviewed_combined_20cls", data_yaml.parent)
+    report["patient_groups"] = validate_patient_splits(source_root)
+    roi_root = dataset_roots.get("yolo_lateral_reviewed_combined_20cls_black_roi")
+    if roi_root is not None:
+        with (source_root / "manifest.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+            source_rows = list(csv.DictReader(handle))
+        source_train_patients = {row["patient_id"] for row in source_rows if row["split"] == "train"}
+        with (roi_root / "manifest.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+            roi_rows = list(csv.DictReader(handle))
+        if len(roi_rows) != report["splits"]["train"]["views"][roi_root.name]["images"]:
+            raise ValueError("ROI manifest/image count mismatch")
+        if any(row["source_split"] != "train" for row in roi_rows):
+            raise ValueError("ROI manifest contains a non-train source")
+        roi_patients = {row["patient_id"] for row in roi_rows}
+        if not roi_patients <= source_train_patients:
+            raise ValueError("ROI patient is not contained in source train split")
+        if (roi_root / "images/val").exists() or (roi_root / "images/test").exists():
+            raise ValueError("ROI dataset must not contain validation or test directories")
+        report["roi_patient_groups"] = len(roi_patients)
     return report
 
 
@@ -190,7 +264,7 @@ def parse_args() -> argparse.Namespace:
     root = Path(__file__).resolve().parents[1]
     default_transfer = root / "3-model_training/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt"
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data", type=Path, default=root / "datasets/yolo_lateral_reviewed_combined_20cls/data.yaml")
+    parser.add_argument("--data", type=Path, default=root / "3-model_training/lateral_pose_20_black_roi_mixed.yaml")
     parser.add_argument("--model", default=str(default_transfer), help="Initialization checkpoint; defaults to the returned second-batch 23-class best.pt")
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--imgsz", type=int, default=1280)

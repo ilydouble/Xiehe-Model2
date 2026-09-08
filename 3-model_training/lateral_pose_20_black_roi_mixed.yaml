@@ -1,0 +1,35 @@
+# Lateral 20-class Pose: original train images plus train-only black-border ROI views.
+# Validation and test remain patient-isolated original images.
+
+path: ../datasets
+train:
+  - yolo_lateral_reviewed_combined_20cls/images/train
+  - yolo_lateral_reviewed_combined_20cls_black_roi/images/train
+val: yolo_lateral_reviewed_combined_20cls/images/val
+test: yolo_lateral_reviewed_combined_20cls/images/test
+
+nc: 20
+names:
+  0: C2
+  1: C7
+  2: T1
+  3: T2
+  4: T3
+  5: T4
+  6: T5
+  7: T6
+  8: T7
+  9: T8
+  10: T9
+  11: T10
+  12: T11
+  13: T12
+  14: T13
+  15: L1
+  16: L2
+  17: L3
+  18: L4
+  19: L5
+
+kpt_shape: [4, 3]
+flip_idx: [1, 0, 3, 2]

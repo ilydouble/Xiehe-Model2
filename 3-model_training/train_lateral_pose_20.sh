@@ -22,6 +22,7 @@ show_help() {
     --standard    第二批23类best.pt迁移，200轮，1280，batch 2（默认）
     --best        第二批23类best.pt迁移，300轮，1280，batch 2
     --base        从官方yolo11l-pose.pt初始化，不使用第二批best.pt
+    --full-frame-only  只使用796张原图训练，不加入185张黑边ROI
 
 选项:
     --model <path/name>  指定初始化模型
@@ -45,7 +46,7 @@ BATCH=2
 DEVICE="0"
 WORKERS=8
 NAME="yolo11l_lateral_reviewed_20cls"
-DATA="${PROJECT_ROOT}/datasets/yolo_lateral_reviewed_combined_20cls/data.yaml"
+DATA="${SCRIPT_DIR}/lateral_pose_20_black_roi_mixed.yaml"
 RESUME=""
 DRY_RUN=false
 SKIP_FINAL_TEST=false
@@ -56,6 +57,7 @@ while [[ $# -gt 0 ]]; do
         --standard) MODEL="${TRANSFER_MODEL}"; EPOCHS=200; IMGSZ=1280; BATCH=2; NAME="yolo11l_lateral_reviewed_20cls"; shift ;;
         --best) MODEL="${TRANSFER_MODEL}"; EPOCHS=300; IMGSZ=1280; BATCH=2; NAME="yolo11l_lateral_reviewed_20cls_best"; shift ;;
         --base) MODEL="${SCRIPT_DIR}/yolo11l-pose.pt"; NAME="yolo11l_lateral_reviewed_20cls_base"; shift ;;
+        --full-frame-only) DATA="${PROJECT_ROOT}/datasets/yolo_lateral_reviewed_combined_20cls/data.yaml"; NAME="yolo11l_lateral_reviewed_20cls_full_frame"; shift ;;
         --model) MODEL="$2"; shift 2 ;;
         --epochs) EPOCHS="$2"; shift 2 ;;
         --imgsz) IMGSZ="$2"; shift 2 ;;
