@@ -256,6 +256,12 @@
 - 默认混合训练全量校验为train 981视图/18,637对象（796原图+185 ROI）、val 99/1,876对象、test 100/1,892对象；val/test没有ROI视图，患者跨split仍为0。
 - 构建器4项测试、混合训练解析器4项测试、Shell语法和真实数据`--standard --dry-run`全部通过。
 
+## 23类脊柱与3点骨盆双模型test可视化
+- 两个用户回传的最佳权重均已定位且各约51 MB：`3-model_training/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt`与`4-model_training_CFH/runs/yolo11l_pelvis_3kpt_roi_mixed_best/weights/best.pt`；两者训练记录均为YOLO11l Pose、imgsz 1280、300 epochs。
+- 共同输入采用三点联合数据集的原始test split，共102张且无ROI：旧批33张、新批69张；CFH来源为直接标注60张、FH双点中点42张。这样三点结果有GT可对照，23类模型也可直接在相同侧位原图上推理。
+- 三点模型语义是一个`pelvis`对象的3个关键点（CFH、S1_left、S1_right），不是3个检测类别；联合图应把它与23类椎体四角预测用不同颜色/图例呈现。
+- 当前系统`python3`没有torch、ultralytics、OpenCV或Pillow，不能直接加载`.pt`推理；三点模型目录已有约85 KB的`predictions.json`，需要先核对是否覆盖完整test及其坐标格式，并继续寻找现有可用推理环境或23类预测缓存。
+
 ## Visual/Browser Findings
 - 问题样本拼图覆盖 1 个越界、5 个缺层和 2 个上下顺序异常；整体上椎体四点 polygon 沿脊柱排列，标注框大小与椎体尺度匹配，未见大范围整体错位。
 - 5 个“内部缺层”样本在相邻已有标注之间并不都能看到一个明显完全漏掉的未标 polygon，因此不能机械补标签：可能是编号跳跃、先天/过渡椎变异或某级标错。它们应进入人工复核队列，并结合全脊柱计数或原始影像报告判定。
