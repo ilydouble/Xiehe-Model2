@@ -32,6 +32,15 @@ def pseudo_shape(label):
 
 
 class YoloCornerReviewTests(unittest.TestCase):
+    def test_button_review_keeps_existing_local_storage_key(self):
+        self.assertIn("id=\"accept\"", MODULE.HTML)
+        self.assertIn("id=\"reject\"", MODULE.HTML)
+        self.assertIn("data-verdict=\"accepted\"", MODULE.HTML)
+        self.assertIn("data-verdict=\"rejected\"", MODULE.HTML)
+        self.assertIn("saveVerdict(b.dataset.verdict)", MODULE.HTML)
+        self.assertIn("key='yolo-corner-c2c6-review-v1'", MODULE.HTML)
+        self.assertIn("已判断 ${done}/${z.sample_count}", MODULE.HTML)
+
     def test_parse_yolo_annotation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
