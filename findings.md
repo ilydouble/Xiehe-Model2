@@ -294,3 +294,9 @@
 - 股骨头体系与来源有明显相关性：例如 FQSY 72 例中 69 例用 CFH，FZBW/GZLL/LFDS/WFSY 等几乎全用 FH 双点；THBZ、LWSY、LFPY 则有混合。这会让“标签定义差异”与“来源域差异”纠缠，训练前应统一目标定义。
 - PNG 通道格式几乎完全由来源决定：FQSY/LFPY/PYGZ/THBZ 全为灰度，FZBW/GZLL/LWSY/WFSY/WZH 等全为 RGBA。若预处理没有显式统一为单通道或 RGB，模型可能学到来源特征，且不同读取库的行为会不一致。
 - 690/706（97.7%）样本具备全部 24 个核心 C2-S1 标签；16 例不完整。其中 5 例是内部编号跳跃，另外 11 例只缺视野边缘标签（主要上颈椎或 S1），需要区分“合理裁切”与“漏标”。
+
+## 20类侧面从零训练入口
+- `--best`现在唯一对应`yolo11l-pose.yaml`随机初始化、`pretrained=false`、300轮、1280输入和batch 4，不再加载任何旧best权重。
+- 本机Ultralytics实际构建结果确认模型scale为`l`，参数量26,230,745，因此是YOLO11 Large Pose而不是小模型。
+- `yolo11l-pose.yaml`只负责网络结构，不包含或决定混合数据；训练脚本通过`lateral_pose_20_black_roi_mixed.yaml`选择796张原图+185张黑边ROI，共981个train视图。
+- 真实数据dry-run确认val 99张、test 100张仍只使用原图，患者级拆分检查通过；shell语法及6项训练入口测试均通过。
