@@ -16,13 +16,12 @@ T13只有第一批的2个对象，两个患者都固定在train。因此T13可�
 
 ## 上传到AutoDL
 
-`datasets/`被Git忽略，因此不能只拉取代码。需要上传下面三项：
+`datasets/`被Git忽略，因此不能只拉取代码。需要上传下面两项：
 
 1. 整个`datasets/yolo_lateral_reviewed_combined_20cls`目录（约3.6 GB）。
 2. 整个`datasets/yolo_lateral_reviewed_combined_20cls_black_roi`目录（约1.0 GB）。
-3. 第二批训练得到的`3-model_training/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt`（约51 MB）。
 
-服务器上保持相同相对路径，训练脚本就能直接找到数据和迁移权重。
+服务器上保持相同相对路径，训练脚本就能直接找到混合数据。
 
 ## 训练
 
@@ -30,33 +29,35 @@ T13只有第一批的2个对象，两个患者都固定在train。因此T13可�
 
 ```bash
 cd /root/autodl-tmp/Model1
-./3-model_training/train_lateral_pose_20.sh --standard --dry-run
+./3-model_training/train_lateral_pose_20.sh --best --dry-run
 ```
 
 标准训练：
 
 ```bash
-./3-model_training/train_lateral_pose_20.sh --standard
+./3-model_training/train_lateral_pose_20.sh --best
 ```
 
-标准配置默认使用“796张原始train + 185张去黑边ROI”的混合YAML，YOLO11l-Pose、200轮、1280输入、batch 2，从第二批23类`best.pt`迁移。Mosaic、MixUp、Copy-Paste均关闭，保留轻微亮度/旋转/平移/缩放和水平翻转；`flip_idx`会同步交换左右角点。
+`--best`只有一个明确含义：`yolo11l-pose.yaml`建立Large Pose网络并随机初始化，300轮、1280输入、batch 4，不加载任何旧`.pt`或迁移权重。训练数据默认读取`lateral_pose_20_black_roi_mixed.yaml`，即796张原始train加185张去黑边ROI，共981个训练视图；模型结构YAML本身不决定是否混合数据。
+
+Mosaic、MixUp、Copy-Paste均关闭，保留轻微亮度/旋转/平移/缩放和水平翻转；`flip_idx`会同步交换左右角点。
 
 如需做不含ROI的对照实验：
 
 ```bash
-./3-model_training/train_lateral_pose_20.sh --standard --full-frame-only
+./3-model_training/train_lateral_pose_20.sh --best --full-frame-only
 ```
 
 显存不足时：
 
 ```bash
-./3-model_training/train_lateral_pose_20.sh --standard --batch 1
+./3-model_training/train_lateral_pose_20.sh --best --batch 2
 ```
 
 训练结束后，脚本加载最佳权重并在test集上使用`classes=[0, 1]`只评估C2和C7。输出位置：
 
-- 最佳权重：`3-model_training/runs/pose/yolo11l_lateral_reviewed_20cls/weights/best.pt`
-- C2/C7测试：`3-model_training/runs/pose/yolo11l_lateral_reviewed_20cls_test_C2_C7`
+- 最佳权重：`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best/weights/best.pt`
+- C2/C7测试：`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best_test_C2_C7`
 
 如需续训：
 

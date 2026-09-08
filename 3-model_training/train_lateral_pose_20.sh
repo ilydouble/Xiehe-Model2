@@ -5,7 +5,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-TRANSFER_MODEL="${SCRIPT_DIR}/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt"
 
 show_help() {
     cat <<'EOF'
@@ -15,17 +14,14 @@ show_help() {
 训练结束后默认只用test集的C2/C7计算最终重点指标。
 
 用法:
-    ./3-model_training/train_lateral_pose_20.sh [预设] [选项]
+    ./3-model_training/train_lateral_pose_20.sh --best [选项]
 
 预设:
-    --quick       YOLO11n-Pose，10轮，640，batch 8（流程检查）
-    --standard    第二批23类best.pt迁移，200轮，1280，batch 2（默认）
-    --best        第二批23类best.pt迁移，300轮，1280，batch 2
-    --base        从官方yolo11l-pose.pt初始化，不使用第二批best.pt
-    --full-frame-only  只使用796张原图训练，不加入185张黑边ROI
+    --best        YOLO11l-Pose随机初始化，混合数据，300轮，1280，batch 4（默认）
 
 选项:
-    --model <path/name>  指定初始化模型
+    --full-frame-only    只使用796张原图，不加入185张黑边ROI
+    --model <path/name>  高级选项；覆盖默认随机初始化结构
     --epochs <num>       训练轮数
     --imgsz <size>       输入尺寸
     --batch <size>       batch
@@ -39,13 +35,13 @@ show_help() {
 EOF
 }
 
-MODEL="${TRANSFER_MODEL}"
-EPOCHS=200
+MODEL="yolo11l-pose.yaml"
+EPOCHS=300
 IMGSZ=1280
-BATCH=2
+BATCH=4
 DEVICE="0"
 WORKERS=8
-NAME="yolo11l_lateral_reviewed_20cls"
+NAME="yolo11l_lateral_20cls_scratch_best"
 DATA="${SCRIPT_DIR}/lateral_pose_20_black_roi_mixed.yaml"
 RESUME=""
 DRY_RUN=false
@@ -53,11 +49,8 @@ SKIP_FINAL_TEST=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --quick) MODEL="yolo11n-pose.pt"; EPOCHS=10; IMGSZ=640; BATCH=8; NAME="yolo11n_lateral_reviewed_20cls_quick"; shift ;;
-        --standard) MODEL="${TRANSFER_MODEL}"; EPOCHS=200; IMGSZ=1280; BATCH=2; NAME="yolo11l_lateral_reviewed_20cls"; shift ;;
-        --best) MODEL="${TRANSFER_MODEL}"; EPOCHS=300; IMGSZ=1280; BATCH=2; NAME="yolo11l_lateral_reviewed_20cls_best"; shift ;;
-        --base) MODEL="${SCRIPT_DIR}/yolo11l-pose.pt"; NAME="yolo11l_lateral_reviewed_20cls_base"; shift ;;
-        --full-frame-only) DATA="${PROJECT_ROOT}/datasets/yolo_lateral_reviewed_combined_20cls/data.yaml"; NAME="yolo11l_lateral_reviewed_20cls_full_frame"; shift ;;
+        --best) MODEL="yolo11l-pose.yaml"; EPOCHS=300; IMGSZ=1280; BATCH=4; NAME="yolo11l_lateral_20cls_scratch_best"; shift ;;
+        --full-frame-only) DATA="${PROJECT_ROOT}/datasets/yolo_lateral_reviewed_combined_20cls/data.yaml"; NAME="yolo11l_lateral_20cls_scratch_best_full_frame"; shift ;;
         --model) MODEL="$2"; shift 2 ;;
         --epochs) EPOCHS="$2"; shift 2 ;;
         --imgsz) IMGSZ="$2"; shift 2 ;;
@@ -75,14 +68,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "数据集: ${DATA}"
-echo "初始化: ${MODEL}"
+echo "初始化: ${MODEL}（随机初始化，不加载迁移权重）"
 echo "配置: epochs=${EPOCHS}, imgsz=${IMGSZ}, batch=${BATCH}, device=${DEVICE}"
 echo "实验: ${NAME}"
 
 [[ -f "${DATA}" ]] || { echo "数据集配置不存在: ${DATA}" >&2; exit 1; }
 if [[ "${MODEL}" == */* && ! -f "${MODEL}" && -z "${RESUME}" ]]; then
-    echo "初始化权重不存在: ${MODEL}" >&2
-    echo "请把第二批best.pt保留在对应路径，或用 --base / --model 指定权重。" >&2
+    echo "模型文件不存在: ${MODEL}" >&2
     exit 1
 fi
 

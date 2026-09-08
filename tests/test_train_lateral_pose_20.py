@@ -1,8 +1,10 @@
 import importlib.util
+import sys
 import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "3-model_training/train_lateral_pose_20.py"
@@ -59,6 +61,22 @@ class TrainingScriptTests(unittest.TestCase):
         self.assertEqual(result["mosaic"], 0.0)
         self.assertEqual(result["mixup"], 0.0)
         self.assertEqual(result["fliplr"], 0.5)
+        self.assertFalse(result["pretrained"])
+
+    def test_defaults_are_large_scratch_best_with_batch_four(self):
+        with patch.object(sys, "argv", ["train_lateral_pose_20.py"]):
+            args = trainer.parse_args()
+        self.assertEqual(args.model, "yolo11l-pose.yaml")
+        self.assertEqual(args.epochs, 300)
+        self.assertEqual(args.imgsz, 1280)
+        self.assertEqual(args.batch, 4)
+        self.assertEqual(args.name, "yolo11l_lateral_20cls_scratch_best")
+
+    def test_shell_best_is_single_scratch_mixed_preset(self):
+        shell = (SCRIPT.parent / "train_lateral_pose_20.sh").read_text(encoding="utf-8")
+        self.assertIn('--best) MODEL="yolo11l-pose.yaml"; EPOCHS=300; IMGSZ=1280; BATCH=4', shell)
+        self.assertIn('DATA="${SCRIPT_DIR}/lateral_pose_20_black_roi_mixed.yaml"', shell)
+        self.assertNotIn("TRANSFER_MODEL=", shell)
 
     def test_validate_mixed_train_keeps_holdout_original_only(self):
         with tempfile.TemporaryDirectory() as temporary:

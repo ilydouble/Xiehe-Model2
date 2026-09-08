@@ -221,6 +221,7 @@ def build_train_args(args: argparse.Namespace) -> dict[str, Any]:
         "project": str(args.project.resolve()),
         "name": args.name,
         "exist_ok": args.exist_ok,
+        "pretrained": False,
         "optimizer": "AdamW",
         "lr0": args.lr0,
         "lrf": 0.01,
@@ -262,17 +263,16 @@ def build_train_args(args: argparse.Namespace) -> dict[str, Any]:
 
 def parse_args() -> argparse.Namespace:
     root = Path(__file__).resolve().parents[1]
-    default_transfer = root / "3-model_training/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=root / "3-model_training/lateral_pose_20_black_roi_mixed.yaml")
-    parser.add_argument("--model", default=str(default_transfer), help="Initialization checkpoint; defaults to the returned second-batch 23-class best.pt")
-    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--model", default="yolo11l-pose.yaml", help="Model architecture or checkpoint; defaults to randomly initialized YOLO11l-Pose")
+    parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--imgsz", type=int, default=1280)
-    parser.add_argument("--batch", type=int, default=2)
+    parser.add_argument("--batch", type=int, default=4)
     parser.add_argument("--device", default="0")
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--project", type=Path, default=root / "3-model_training/runs/pose")
-    parser.add_argument("--name", default="yolo11l_lateral_reviewed_20cls")
+    parser.add_argument("--name", default="yolo11l_lateral_20cls_scratch_best")
     parser.add_argument("--lr0", type=float, default=0.001)
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--save-period", type=int, default=10)
