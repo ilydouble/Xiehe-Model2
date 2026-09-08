@@ -247,10 +247,10 @@ Phase 41
 - **Status:** complete
 
 ### Phase 41: 纠正与交付
-- [ ] 按确认后的yolo_corner口径生成复核产物
-- [ ] 完整性审计与抽样视觉检查
-- [ ] 提交代码和文档并说明旧包处置方式
-- **Status:** in_progress
+- [x] 按确认后的yolo_corner口径生成复核产物
+- [x] 完整性审计与抽样视觉检查
+- [x] 提交代码和文档并说明旧包处置方式
+- **Status:** complete
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？
@@ -295,6 +295,8 @@ Phase 41
 | 本轮首次读取planning skill时工具调用JavaScript参数拼写错误 | 2 | 停止尝试变体，改用已验证的`exec_command`标准参数后完整读取skill |
 | 更新Phase 41状态时补丁仍按旧Current Phase文本匹配 | 1 | 读取当前文件后按`Phase 41 (awaiting confirmation)`精确更新；失败补丁没有产生半成品 |
 | 10张补推理在CPU上出现2次Ultralytics NMS time limit警告 | 1 | 将NMS前阈值从0.01提高到最终保留阈值0.03，去掉必然被后续丢弃的低置信框，并对10张重新核对 |
+| 用含Markdown反引号的双引号rg命令搜索时触发zsh命令替换 | 1 | 搜索结果仍返回；后续对含反引号文本使用单引号或不在shell参数中写反引号 |
+| 同时更新多文件的计划补丁因一个上下文锚点未匹配而整体拒绝 | 1 | 分成精确的小补丁重新应用，失败补丁没有产生半成品 |
 | 提交yolo_corner核对结论时无法创建`.git/index.lock` | 1 | 使用受控权限并仅暂存本轮3个规划记录文件 |
 | 搜索本机Ultralytics源码时zsh未匹配系统路径glob | 1 | 已确认当前Python无Ultralytics；不重复该glob，训练YAML按已有已验证的正面多目录模式生成 |
 | 真实824张ROI dry-run在标签变换时报告bbox y边界越界 | 1 | 单元测试通过但真实标签存在边界/舍入特例；正在定位具体样本并收紧裁剪包含与数值容差规则 |

@@ -109,3 +109,20 @@ PYTHON_BIN=/path/to/python3 ./5-inference/run_pseudo_label_first_lateral.sh --ap
 - 独立审计确认384张预览全部可解码、SHA-256全部匹配、伪标签类别越界为0，AppleDouble旁车已清理。
 
 旧候选目录包含对其他缺失级别的模型输出，不应直接用作严格C2-C6训练标签。待人工CSV返回后，再按结论生成最终LabelMe数据；在此之前原始数据和候选JSON均保持不变。
+
+## yolo_corner口径纠正版（最终使用）
+
+用户进一步确认第一批训练基线是 `datasets/yolo_corner`，不是LAT中全部同stem LabelMe样本。因此上面的384张LAT复核包保留作历史检查，但不得用于构建yolo_corner补标数据；最终应使用：
+
+`/Volumes/E/spine_data/yolo_corner_仅补C2-C6_人工接受拒绝复核包_368张_20260908`
+
+纠正版严格覆盖yolo_corner的368张图：294 train、37 val、37 test。青色为现有18类YOLO Pose四角点，绿/橙/红仅为C2-C6候选。358张复用既有模型候选，10张单独补推理；新增候选共1,770个，C2/C3/C4/C5/C6分别为352/361/350/354/353，另有70个无候选项分布在29张图中。
+
+HTML还可筛选10张旧标签错配风险、4个跨split患者所涉8张图、1组精确重复所涉2张图、2张基线缺级以及C2触边/近边。所有警告均只辅助判断，不自动排除。人工结果导出为 `yolo_corner仅补C2-C6人工接受拒绝结果.csv`；收到结果后应另建23类数据集，并按原始患者目录ID重新划分，不能覆盖或直接沿用当前yolo_corner split。
+
+重新生成或审计命令：
+
+```bash
+/opt/miniconda3/bin/python3 5-inference/render_yolo_corner_c2c6_review.py
+/opt/miniconda3/bin/python3 5-inference/render_yolo_corner_c2c6_review.py --audit-only
+```
