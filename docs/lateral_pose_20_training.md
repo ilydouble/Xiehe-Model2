@@ -10,14 +10,17 @@
 
 数据集共995张：第一批297张人工接受且来源正确的图，第二批698张清洗后的图。拆分为train 796、val 99、test 100，按患者分组且没有跨集合患者。14张已确认旧标签错配图和1张等价重复图均不在训练清单中。
 
+默认训练还会读取`datasets/yolo_lateral_reviewed_combined_20cls_black_roi`：它只从train中的185张明显连续黑边图生成去黑边派生视图（第一批148、第二批37），并同步变换全部椎体bbox和四关键点。原始796张train图仍保留，因此实际训练视图为981张；val 99张和test 100张始终只使用原始全图。ROI与原图沿用同一患者split，不会把train患者引入val/test。
+
 T13只有第一批的2个对象，两个患者都固定在train。因此T13可以参与辅助训练，但val/test不能给出可靠的T13泛化指标；本轮最终指标只看C2和C7。
 
 ## 上传到AutoDL
 
-`datasets/`被Git忽略，因此不能只拉取代码。需要上传下面两项：
+`datasets/`被Git忽略，因此不能只拉取代码。需要上传下面三项：
 
 1. 整个`datasets/yolo_lateral_reviewed_combined_20cls`目录（约3.6 GB）。
-2. 第二批训练得到的`3-model_training/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt`（约51 MB）。
+2. 整个`datasets/yolo_lateral_reviewed_combined_20cls_black_roi`目录（约1.0 GB）。
+3. 第二批训练得到的`3-model_training/runs/pose/yolo11l_lateral_23cls_best/weights/best.pt`（约51 MB）。
 
 服务器上保持相同相对路径，训练脚本就能直接找到数据和迁移权重。
 
@@ -36,7 +39,13 @@ cd /root/autodl-tmp/Model1
 ./3-model_training/train_lateral_pose_20.sh --standard
 ```
 
-标准配置为YOLO11l-Pose、200轮、1280输入、batch 2，从第二批23类`best.pt`迁移。Mosaic、MixUp、Copy-Paste均关闭，保留轻微亮度/旋转/平移/缩放和水平翻转；`flip_idx`会同步交换左右角点。
+标准配置默认使用“796张原始train + 185张去黑边ROI”的混合YAML，YOLO11l-Pose、200轮、1280输入、batch 2，从第二批23类`best.pt`迁移。Mosaic、MixUp、Copy-Paste均关闭，保留轻微亮度/旋转/平移/缩放和水平翻转；`flip_idx`会同步交换左右角点。
+
+如需做不含ROI的对照实验：
+
+```bash
+./3-model_training/train_lateral_pose_20.sh --standard --full-frame-only
+```
 
 显存不足时：
 
@@ -62,3 +71,16 @@ cd /root/autodl-tmp/Model1
 - `excluded_samples.csv`：第一批人工拒绝/错配和第二批上游排除项
 - `metadata/first_batch_human_review.csv`：原始人工接受/拒绝结果
 - `metadata/first_batch_label_source_audit.csv`：旧标签来源错配审计
+
+ROI目录另外包含`manifest.csv`、`build_report.json`和`leakage_audit.json`，记录每张派生图的来源患者、原split、裁剪框和图像哈希。需要在本机重新检查或重建时：
+
+```bash
+# 只预演，不写数据
+python3 scripts/build_lateral_black_roi_views.py
+
+# 原子方式正式重建
+python3 scripts/build_lateral_black_roi_views.py --apply
+
+# 对已经生成的ROI做独立审计
+python3 scripts/build_lateral_black_roi_views.py --audit-only
+```
