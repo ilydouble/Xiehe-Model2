@@ -501,7 +501,10 @@ def audit_package(pseudolabel_root: Path, output: Path, expected_count: int | No
         return {"status": "failed", "errors": errors}
     package_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     rows = read_csv(index_path)
-    preview_paths = sorted((output / "previews").glob("*.jpg"))
+    preview_paths = sorted(
+        path for path in (output / "previews").glob("*.jpg")
+        if not path.name.startswith("._")
+    )
     expected = expected_count if expected_count is not None else package_manifest["sample_count"]
     if len(rows) != expected:
         errors.append(f"index_count:{len(rows)}!={expected}")

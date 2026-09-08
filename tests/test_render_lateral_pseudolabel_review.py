@@ -106,6 +106,8 @@ class ReviewRendererTests(unittest.TestCase):
             self.assertEqual(rows[0]["priority"], "缺候选")
             with Image.open(output / rows[0]["preview"]) as preview:
                 self.assertEqual(preview.size, (1780, 1750))
+            (output / "previews" / "._metadata.jpg").write_bytes(b"AppleDouble")
+            self.assertEqual(MODULE.audit_package(pseudo, output)["status"], "passed")
             with self.assertRaises(FileExistsError):
                 MODULE.build_package(source, pseudo, output)
 
