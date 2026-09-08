@@ -298,16 +298,16 @@ Phase 49
 - **Status:** complete
 
 ### Phase 49: 黑边ROI契约与范围
-- [ ] 按最终20类train重新统计黑边并固定纳入阈值
-- [ ] 固定train-only派生、原图+ROI混合训练、val/test原图不变
-- [ ] 明确全脊柱ROI只裁连续黑边、不按局部椎体目标裁剪
-- **Status:** in_progress
+- [x] 按最终20类train重新统计黑边并固定纳入阈值
+- [x] 固定train-only派生、原图+ROI混合训练、val/test原图不变
+- [x] 明确全脊柱ROI只裁连续黑边、不按局部椎体目标裁剪
+- **Status:** complete
 
 ### Phase 50: 多目标ROI转换器与测试
 - [ ] 实现黑边检测、裁剪和全部20类bbox/四关键点同步换算
 - [ ] 覆盖多对象、边界舍入、无黑边跳过、非train拒绝和泄漏审计
 - [ ] dry-run确认ROI数量、裁剪比例和标签合法性
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 51: ROI数据集、混合YAML与训练入口
 - [ ] 生成train-only实体ROI数据集和来源manifest
