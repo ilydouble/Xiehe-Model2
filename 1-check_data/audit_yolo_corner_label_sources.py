@@ -122,6 +122,8 @@ def audit(dataset: Path, raw_root: Path) -> tuple[dict[str, Any], list[dict[str,
             "patient_id": "",
             "same_stem_json_exists": False,
             "matched_jsons": "",
+            "matched_source_images": "",
+            "matched_source_image_sha256_equal": False,
             "best_json": "",
             "best_class_set_difference": "",
             "best_max_coordinate_delta_normalized": "",
@@ -135,7 +137,8 @@ def audit(dataset: Path, raw_root: Path) -> tuple[dict[str, Any], list[dict[str,
         raw_image = raw_matches[0]
         patient_dir = raw_image.parent
         row["patient_id"] = patient_dir.name
-        row["dataset_raw_image_sha256_equal"] = sha256_file(image_path) == sha256_file(raw_image)
+        raw_image_sha256 = sha256_file(raw_image)
+        row["dataset_raw_image_sha256_equal"] = sha256_file(image_path) == raw_image_sha256
         same_stem_json = raw_image.with_suffix(".json")
         row["same_stem_json_exists"] = same_stem_json.is_file()
         json_paths = sorted(
@@ -164,8 +167,17 @@ def audit(dataset: Path, raw_root: Path) -> tuple[dict[str, Any], list[dict[str,
         row["best_class_set_difference"] = best_class_difference
         row["best_max_coordinate_delta_normalized"] = f"{best_delta:.9f}"
         row["matched_jsons"] = ";".join(path.name for path in exact_matches)
+        matched_source_images = [
+            path.with_suffix(".png") for path in exact_matches if path.with_suffix(".png").is_file()
+        ]
+        row["matched_source_images"] = ";".join(path.name for path in matched_source_images)
+        row["matched_source_image_sha256_equal"] = any(
+            sha256_file(path) == raw_image_sha256 for path in matched_source_images
+        )
         if same_stem_json in exact_matches:
             row["status"] = "correct_same_stem"
+        elif exact_matches and row["matched_source_image_sha256_equal"]:
+            row["status"] = "equivalent_duplicate_source"
         elif exact_matches:
             row["status"] = "definite_mismatch"
             row["requires_full_23cls_reannotation"] = True
@@ -187,6 +199,9 @@ def audit(dataset: Path, raw_root: Path) -> tuple[dict[str, Any], list[dict[str,
         "dataset_raw_image_sha256_mismatch_count": sum(
             not bool(row["dataset_raw_image_sha256_equal"]) for row in rows
         ),
+        "label_from_other_json_count": sum(
+            row["status"] in {"definite_mismatch", "equivalent_duplicate_source"} for row in rows
+        ),
         "definite_mismatch_by_split": dict(sorted(Counter(
             str(row["split"]) for row in rows if row["status"] == "definite_mismatch"
         ).items())),
@@ -205,11 +220,13 @@ def write_outputs(output: Path, summary: dict[str, Any], rows: Sequence[dict[str
         writer.writeheader()
         writer.writerows(rows)
     mismatches = [row for row in rows if row["requires_full_23cls_reannotation"]]
+    equivalent_duplicates = [row for row in rows if row["status"] == "equivalent_duplicate_source"]
     lines = [
         "# yolo_corner旧18类标注来源审计",
         "",
         f"- 样本总数：{summary['sample_count']}",
         f"- 需要补全23类：{len(mismatches)}",
+        f"- 标签来自其他JSON但源图逐字节相同、应去重：{len(equivalent_duplicates)}",
         f"- 状态计数：`{json.dumps(summary['status'], ensure_ascii=False)}`",
         "",
         "## 需要补全23类的图像",
@@ -218,6 +235,11 @@ def write_outputs(output: Path, summary: dict[str, Any], rows: Sequence[dict[str
     for row in mismatches:
         lines.append(
             f"- `{row['relative_image']}`：{row['status']}；现有标签来源 `{row['matched_jsons'] or row['best_json']}`"
+        )
+    lines.extend(["", "## 应去重而非重标的逐字节相同图像", ""])
+    for row in equivalent_duplicates:
+        lines.append(
+            f"- `{row['relative_image']}`：现有标签来源 `{row['matched_jsons']}`"
         )
     (output / "full_23cls_reannotation_list.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

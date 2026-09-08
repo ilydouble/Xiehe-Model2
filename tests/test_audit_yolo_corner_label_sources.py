@@ -37,8 +37,9 @@ class AuditTests(unittest.TestCase):
             for split in MODULE.SPLITS:
                 (dataset / "images" / split).mkdir(parents=True)
                 (dataset / "labels" / split).mkdir(parents=True)
-            for name in ("a.png", "b.png", "c.png"):
-                Image.new("L", (100, 100), 0).save(patient / name)
+            Image.new("L", (100, 100), 0).save(patient / "a.png")
+            Image.new("L", (100, 100), 0).save(patient / "b.png")
+            Image.new("L", (100, 100), 127).save(patient / "c.png")
             (patient / "a.json").write_text(json.dumps(annotation("a.png", 10)), encoding="utf-8")
             (patient / "c.json").write_text(json.dumps(annotation("c.png", 50)), encoding="utf-8")
             for name in ("a.png", "b.png", "c.png"):
@@ -52,13 +53,20 @@ class AuditTests(unittest.TestCase):
             summary, rows = MODULE.audit(dataset, raw)
             by_name = {row["filename"]: row for row in rows}
             self.assertEqual(summary["sample_count"], 3)
-            self.assertEqual(summary["status"], {"correct_same_stem": 1, "definite_mismatch": 2})
+            self.assertEqual(summary["status"], {
+                "correct_same_stem": 1,
+                "definite_mismatch": 1,
+                "equivalent_duplicate_source": 1,
+            })
             self.assertEqual(by_name["a.png"]["status"], "correct_same_stem")
             self.assertEqual(by_name["b.png"]["matched_jsons"], "a.json")
             self.assertFalse(by_name["b.png"]["same_stem_json_exists"])
+            self.assertEqual(by_name["b.png"]["status"], "equivalent_duplicate_source")
+            self.assertTrue(by_name["b.png"]["matched_source_image_sha256_equal"])
             self.assertEqual(by_name["c.png"]["matched_jsons"], "a.json")
             self.assertTrue(by_name["c.png"]["same_stem_json_exists"])
-            self.assertEqual(summary["requires_full_23cls_reannotation_count"], 2)
+            self.assertEqual(summary["requires_full_23cls_reannotation_count"], 1)
+            self.assertEqual(summary["label_from_other_json_count"], 2)
 
 
 if __name__ == "__main__":
