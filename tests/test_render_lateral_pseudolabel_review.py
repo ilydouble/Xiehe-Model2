@@ -37,6 +37,34 @@ def polygon(label, y, pseudo=False, quality="high"):
 
 
 class ReviewRendererTests(unittest.TestCase):
+    def test_c2c6_composition_drops_other_pseudo_labels(self):
+        source = {"shapes": [polygon("C7", 260), polygon("T1", 320)]}
+        candidate = {"shapes": [
+            *source["shapes"],
+            polygon("C2", 60, True, "high"),
+            polygon("C3", 100, True, "medium"),
+            polygon("T2", 380, True, "low"),
+        ]}
+        output = MODULE.compose_c2c6_annotation(source, candidate)
+        labels = [shape["label"] for shape in output["shapes"]]
+        self.assertEqual(labels, ["C7", "T1", "C2", "C3"])
+        self.assertEqual(source["shapes"], output["shapes"][:2])
+        self.assertNotIn("T2", labels)
+
+    def test_c2_boundary_states_are_warnings_not_exclusions(self):
+        touch = {"shapes": [{
+            **polygon("C2", 0, True),
+            "points": [[80, 0], [120, 0], [120, 25], [80, 25]],
+        }]}
+        near = {"shapes": [{
+            **polygon("C2", 1.2, True),
+            "points": [[80, 1.2], [120, 1.2], [120, 26.2], [80, 26.2]],
+        }]}
+        safe = {"shapes": [polygon("C2", 60, True)]}
+        self.assertEqual(MODULE.c2_boundary_info(touch, 300, 800)["state"], "touch")
+        self.assertEqual(MODULE.c2_boundary_info(near, 300, 800)["state"], "near")
+        self.assertEqual(MODULE.c2_boundary_info(safe, 300, 800)["state"], "safe")
+
     def test_cervical_crop_contains_all_cervical_points(self):
         annotation = {"shapes": [polygon("C2", 100, True), polygon("C7", 500)]}
         crop = MODULE.cervical_crop(annotation, 1000, 2000)
@@ -110,6 +138,14 @@ class ReviewRendererTests(unittest.TestCase):
             self.assertEqual(MODULE.audit_package(pseudo, output)["status"], "passed")
             with self.assertRaises(FileExistsError):
                 MODULE.build_package(source, pseudo, output)
+
+            c2c6_output = root / "c2c6_review"
+            strict_report = MODULE.build_package(source, pseudo, c2c6_output, only_c2c6=True)
+            self.assertEqual(strict_report["status"], "passed")
+            strict_rows = MODULE.read_csv(c2c6_output / "人工复核索引.csv")
+            self.assertEqual(strict_rows[0]["added_labels"], "C2;C3;C4")
+            self.assertEqual(strict_rows[0]["c2_boundary"], "safe")
+            self.assertNotIn("C7", strict_rows[0]["added_labels"])
 
 
 if __name__ == "__main__":
