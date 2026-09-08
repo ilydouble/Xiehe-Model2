@@ -215,7 +215,9 @@ def infer_annotation(
     views = PSEUDO.plan_views(width, height, bands, PSEUDO.annotation_points(baseline))
     sources = [image[view.y0:view.y1, view.x0:view.x1] for view in views]
     results = model_state["model"].predict(
-        sources, conf=args.predict_conf, iou=args.iou, imgsz=args.imgsz,
+        # Values below candidate_conf are discarded immediately and only make
+        # CPU NMS slower, so threshold before NMS for the ten uncovered images.
+        sources, conf=args.candidate_conf, iou=args.iou, imgsz=args.imgsz,
         device=model_state["device"], max_det=args.max_det, verbose=False,
     )
     candidates = PSEUDO.clip_candidates(
