@@ -91,3 +91,9 @@ PYTHON_BIN=/path/to/python3 ./5-inference/run_pseudo_label_first_lateral.sh --ap
 - `--audit-only` 全量检查通过，错误数0。
 
 以下6张完全没有C2-C6候选，应直接人工绘制：WANG_YANG两张、XU_LONG_YUE、YANG_HUI_JUN、YU_CHU_YI、ZHAO_WEN_QI。精确文件名可在 `review_queue.csv` 中筛选 `status=no_candidate` 查看。
+
+## E盘完整复核可视化（2026-09-08）
+
+全量复核包位于 `/Volumes/E/spine_data/LAT202511_侧面补标人工复核可视化_384份_20260908`。其中每张JPG左侧为带全部C2-L5层级名的完整侧位片，右侧为C2-C7放大图；原始人工polygon为青色，模型补标high/medium/low分别为绿、橙、红。
+
+双击 `打开此文件逐张人工复核.html` 可按缺候选、含low、含medium、仅high筛选，保存人工判断并导出CSV。包内另有 `人工复核索引.csv`、`manifest.json`、`audit_report.json` 和 `未纳入补标_无同名JSON_20张.csv`。终验确认384张JPG全部可解码且SHA-256匹配；20张无同名JSON原图没有候选标注，单独列清单而没有伪造空JSON。
