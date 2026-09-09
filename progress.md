@@ -532,7 +532,16 @@
 - **Completed:** 2026-09-09
 
 ### Phase 57: 本地测试集正式评估
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 固定在test split、imgsz 1280上计算全20类bbox与pose指标，输出到`analysis/lateral_20cls_test_eval_100_20260909`。
   - 首次调用在数据加载前失败：Ultralytics按全局datasets_dir错误解析混合YAML相对path；确认没有进入推理，改用临时绝对路径YAML处理。
+  - 正式评估100张/1,892对象全部完成，保存总体与逐类指标、Box/Pose曲线、混淆矩阵和批次可视化；Pose mAP50-95为0.8964。
+  - 补充机器可读`metrics_summary.json`与`per_class_metrics.csv`，显式记录T13在test为0实例。
+- **Completed:** 2026-09-09
+
+### Phase 58: E盘人工核验可视化包
+- **Status:** in_progress
+- Actions taken:
+  - 新增20类test专用可视化器和4项单元测试，支持GT/预测同图、三段放大、逐图误差与离线接受/拒绝导出。
+  - 生成2张真实smoke包并完成自动审计与视觉抽查，版式、颜色、坐标映射和风险提示正确。

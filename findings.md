@@ -314,3 +314,8 @@
 - 数据全量dry-run通过：混合train 981视图/18,637对象，val 99/1,876，test 100/1,892；test来源为第一批35张、第二批65张，共99个患者组，无train-only ROI。
 - 正式指标采用Ultralytics test split默认低置信采样计算bbox与pose的P、R、mAP50、mAP50-95，输入1280；评估输出固定为`analysis/lateral_20cls_test_eval_100_20260909`。
 - E盘核验包固定为`/Volumes/E/spine_data/lateral_20cls_test_review_100_20260909`，采用0.10展示阈值保留低置信候选供人工检查，并拒绝覆盖同名现有目录。
+- 正式test评估100张/1,892对象全部完成：BBox P/R/mAP50/mAP50-95为0.8897/0.8775/0.9314/0.6465；Pose P/R/mAP50/mAP50-95为0.8992/0.8921/0.9463/0.8964。
+- 核心类C2的Pose mAP50/mAP50-95为0.975/0.858，C7为0.960/0.877。T13在test中0实例，Ultralytics总体与逐类指标实际基于其余19类，不能把T13视为已被test验证。
+- CPU 1280评估推理平均294.5ms/张；结果目录包含Box/Pose PR、P、R、F1曲线、混淆矩阵、批次GT/预测图，以及新增的`metrics_summary.json`和`per_class_metrics.csv`。
+- 新可视化器以每图GT实际存在类别为比较范围，不会把全test缺失的T13误报为漏检；若模型输出T13则标为“无GT误检”。页面支持漏检、无GT误检、重复、低置信、关键点误差、批次和未判断筛选，并可导出人工结论CSV。
+- 2张真实smoke包通过数量、图片解码、索引、预测JSONL和AppleDouble审计。视觉抽查确认全图及三段放大坐标一致，青色GT与绿色预测可区分，风险横幅能显示重复候选和关键点大误差。

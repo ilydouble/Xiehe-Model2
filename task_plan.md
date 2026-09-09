@@ -4,7 +4,7 @@
 维护侧面脊柱与骨盆关键点数据、训练和人工复核流程；当前任务是把20类侧面训练入口简化为单一`--best`预设：YOLO11l随机初始化、原图+ROI混合数据、300轮、1280、batch 4。
 
 ## Current Phase
-Phase 57 (in progress)
+Phase 58 (in progress)
 
 ## Phases
 
@@ -346,16 +346,16 @@ Phase 57 (in progress)
 - **Status:** complete
 
 ### Phase 57: 本地测试集正式评估
-- [ ] 在100张原图test集上运行模型评估
-- [ ] 保存总体、逐类bbox/pose指标和运行配置
-- [ ] 核验评估结果完整性并记录异常
-- **Status:** in_progress
+- [x] 在100张原图test集上运行模型评估
+- [x] 保存总体、逐类bbox/pose指标和运行配置
+- [x] 核验评估结果完整性并记录异常
+- **Status:** complete
 
 ### Phase 58: E盘人工核验可视化包
 - [ ] 生成全量test预测叠加图、离线HTML、CSV和预测明细
 - [ ] 提供按漏检、重复候选、低置信和关键类别风险筛选
 - [ ] 审计数量、图像可读性、索引引用和模型哈希
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 59: 最终复核与交付
 - [ ] 抽查高风险与常规样本的可视化正确性
@@ -422,6 +422,7 @@ Phase 57 (in progress)
 | 简化训练入口的首次多文件补丁引用了不存在的echo上下文 | 1 | 补丁整体安全拒绝；拆分为精确的小补丁后成功 |
 | 初始化本轮计划时跨文件补丁的findings锚点不精确 | 2 | 两次补丁整体安全拒绝且无半成品；读取文件尾部后改为逐文件补丁 |
 | Ultralytics把混合YAML相对path按全局datasets_dir解析到其它项目 | 1 | 尚未进入推理；改用一次性绝对path评估YAML后重跑 |
+| 清理HTML占位文本时首次补丁上下文包含了diff前缀 | 1 | 补丁安全拒绝且无半成品；按文件真实行重新替换并通过测试 |
 
 ## Notes
 - 不纳入或覆盖工作区已有的无关修改。
