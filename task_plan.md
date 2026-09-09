@@ -4,7 +4,7 @@
 维护侧面脊柱与骨盆关键点数据、训练和人工复核流程；当前任务已完成最终20类侧面模型在本地test集的整脊柱评估，并在E盘生成可逐张接受/拒绝的人工核验包。
 
 ## Current Phase
-Phase 60 (in progress)
+Phase 60 (complete)
 
 ## Phases
 
@@ -366,8 +366,8 @@ Phase 60 (in progress)
 ### Phase 60: E盘页面无图修复
 - [x] 定位页面初始化失败原因并增加回归测试
 - [x] 修复JavaScript换行转义并提供原子HTML刷新入口
-- [ ] 刷新E盘现有页面并在浏览器中终验首图显示
-- **Status:** in_progress
+- [x] 刷新E盘现有页面并在浏览器中终验首图显示
+- **Status:** complete
 
 ## Key Questions
 1. 数据集规模、类别、标注类型和图像尺寸分布是什么？

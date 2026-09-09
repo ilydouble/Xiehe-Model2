@@ -327,3 +327,4 @@
 - 用户质疑100张及评估范围后复核：最终20类联合数据集总计995张，manifest明确为796 train、99 val、100 test；训练YAML的test正指向这100张。正式评估没有传`classes`过滤参数，逐类结果覆盖C2、C7、T1-T12、L1-L5；T13因test 0实例无法计算。
 - 用户反馈E盘HTML页面无图。复核确认100张preview均存在且首行相对路径可读取；根因是生成HTML时Python把CSV导出代码中的换行转义变成了JavaScript字符串内的实际换行，使整段内联脚本语法错误，`refresh()`未运行，图片src从未赋值。
 - 生成器已改为输出JavaScript字面量反斜杠n，并新增`validate_html_runtime`、`--refresh-html`及回归测试；6项测试和Node语法检查通过。
+- E盘现有包已原子刷新；独立审计仍为index 100、preview 100、predictions 100、错误0。首条索引预览可读取并完成视觉核验，包含整脊柱全图与颈胸、胸段、胸腰三段放大图。

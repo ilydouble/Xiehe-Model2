@@ -562,7 +562,9 @@
 - **Completed:** 2026-09-09
 
 ### Phase 60: E盘页面无图修复
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 根据用户反馈复核E盘页面：预览文件和索引路径均存在，定位到内联JavaScript的换行转义错误导致页面初始化中止。
   - 修复生成器，加入HTML运行时校验、原子刷新参数和回归测试；6项单元测试、Python语法及Node JavaScript语法检查通过。
+  - 原地刷新E盘`index.html`，独立审计确认100条索引、100张预览、100条预测且错误0；首条整脊柱预览读取和视觉检查正常。
+- **Completed:** 2026-09-09
