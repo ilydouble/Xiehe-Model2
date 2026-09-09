@@ -560,3 +560,9 @@
   - 浏览器访问后一度检出1个AppleDouble旁车；旁车随后自动消失，终验通过且最终AppleDouble为0。
   - 保留用户已有未提交文件和既有`analysis/`内容，不纳入本轮提交。
 - **Completed:** 2026-09-09
+
+### Phase 60: E盘页面无图修复
+- **Status:** in_progress
+- Actions taken:
+  - 根据用户反馈复核E盘页面：预览文件和索引路径均存在，定位到内联JavaScript的换行转义错误导致页面初始化中止。
+  - 修复生成器，加入HTML运行时校验、原子刷新参数和回归测试；6项单元测试、Python语法及Node JavaScript语法检查通过。

@@ -298,8 +298,15 @@ function match(x){{const q=$('q').value.trim().toLowerCase(),f=$('filter').value
 function refresh(){{ids=s.map((x,i)=>i).filter(i=>match(s[i])).sort((a,b)=>s[b].risk_score-s[a].risk_score||s[a].file_name.localeCompare(s[b].file_name));at=Math.min(at,Math.max(0,ids.length-1));render()}}
 function render(){{const x=s[ids[at]],done=s.filter(x=>saved[x.source_image]?.verdict).length;$('summary').textContent=`已判断 ${{done}}/${{s.length}}；当前筛选 ${{ids.length}} 张；风险 ${{d.summary.risk_images}}，漏检 ${{d.summary.missing_images}}，无GT误检 ${{d.summary.false_positive_images}}`;if(!x){{$('preview').removeAttribute('src');$('meta').textContent='没有匹配样本';$('position').textContent='0/0';return}}$('preview').src=x.preview;$('link').href=x.preview;const bad=x.risk_tags[0]!=='常规',err=x.max_keypoint_error_percent_diagonal==null?'NA':x.max_keypoint_error_percent_diagonal.toFixed(3)+'%';$('meta').innerHTML=`<span class=\"tag ${{bad?'danger':'ok'}}\">${{x.source_batch}}</span><span class=tag>风险 ${{x.risk_tags.join(' / ')}}</span><span class=tag>漏检 ${{x.missing_classes.join(',')||'无'}}</span><span class=tag>无GT误检 ${{x.false_positive_classes.join(',')||'无'}}</span><span class=tag>低置信 ${{x.low_confidence_classes.join(',')||'无'}}</span><span class=tag>最大关键点误差 ${{err}}</span>`;const r=saved[x.source_image]||{{}};$('note').value=r.note||'';$('status').textContent='当前：'+(vt[r.verdict]||'未判断');document.querySelectorAll('[data-verdict]').forEach(b=>b.classList.toggle('active',b.dataset.verdict===(r.verdict||'')));$('jump').value=at+1;$('position').textContent=`${{at+1}}/${{ids.length}}　${{x.source_image}}`}}
 function move(n){{at=Math.max(0,Math.min(ids.length-1,at+n));render()}}function save(v){{const x=s[ids[at]];if(!x)return;saved[x.source_image]={{verdict:v,note:$('note').value,updated_at:new Date().toISOString()}};localStorage.setItem(key,JSON.stringify(saved));if($('filter').value==='todo')refresh();else move(1)}}
-function exportCsv(){{const esc=v=>'"'+String(v??'').replaceAll('"','""')+'"',rows=[['source_image','verdict','note','updated_at']];s.forEach(x=>{{const r=saved[x.source_image]||{{}};rows.push([x.source_image,r.verdict||'',r.note||'',r.updated_at||''])}});const blob=new Blob(['\ufeff'+rows.map(r=>r.map(esc).join(',')).join('\n')],{{type:'text/csv'}}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='20类侧面test人工核验结果.csv';a.click();URL.revokeObjectURL(a.href)}}
+function exportCsv(){{const esc=v=>'"'+String(v??'').replaceAll('"','""')+'"',rows=[['source_image','verdict','note','updated_at']];s.forEach(x=>{{const r=saved[x.source_image]||{{}};rows.push([x.source_image,r.verdict||'',r.note||'',r.updated_at||''])}});const blob=new Blob(['\ufeff'+rows.map(r=>r.map(esc).join(',')).join('\\n')],{{type:'text/csv'}}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='20类侧面test人工核验结果.csv';a.click();URL.revokeObjectURL(a.href)}}
 $('filter').onchange=()=>{{at=0;refresh()}};$('q').oninput=()=>{{at=0;refresh()}};$('prev').onclick=()=>move(-1);$('next').onclick=()=>move(1);$('jump').onchange=()=>{{at=Math.max(0,Math.min(ids.length-1,Number($('jump').value)-1));render()}};document.querySelectorAll('[data-verdict]').forEach(b=>b.onclick=()=>save(b.dataset.verdict));document.onkeydown=e=>{{if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1);if(e.key.toLowerCase()==='a')save('accepted');if(e.key.toLowerCase()==='r')save('rejected')}};$('export').onclick=exportCsv;refresh();</script></body></html>"""
+
+
+def validate_html_runtime(html_text: str) -> None:
+    broken = ".join('" + chr(10) + "')"
+    expected = ".join('" + chr(92) + "n')"
+    if broken in html_text or expected not in html_text:
+        raise ValueError("Generated HTML contains an invalid JavaScript newline literal")
 
 
 def write_index(path: Path, records: Sequence[dict[str, Any]]) -> None:
@@ -481,7 +488,9 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
         write_index(staging / "index.csv", records)
         (staging / "review_data.js").write_text("window.LATERAL20_TEST_REVIEW = " + json.dumps({"summary": summary, "samples": records}, ensure_ascii=False) + ";\n", encoding="utf-8")
         (staging / "build_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        (staging / "index.html").write_text(build_html(report), encoding="utf-8")
+        html_text = build_html(report)
+        validate_html_runtime(html_text)
+        (staging / "index.html").write_text(html_text, encoding="utf-8")
         (staging / "README.md").write_text(
             "# 20类侧面脊柱Pose test人工核验包\n\n"
             "双击`index.html`逐张核验。青色为GT，绿色为预测，红色为漏检GT，橙色为无GT预测。"
@@ -513,6 +522,23 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
         raise
 
 
+def refresh_html(output_dir: Path) -> dict[str, Any]:
+    report_path = output_dir / "build_report.json"
+    if not report_path.is_file():
+        raise FileNotFoundError(report_path)
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    html_text = build_html(report)
+    validate_html_runtime(html_text)
+    temporary = output_dir / ".index.html.tmp"
+    temporary.write_text(html_text, encoding="utf-8")
+    os.replace(temporary, output_dir / "index.html")
+    remove_apple_double(output_dir)
+    audit = audit_package(output_dir)
+    if audit["status"] != "passed":
+        raise RuntimeError(f"Package audit failed after HTML refresh: {audit['errors']}")
+    return {"output": str(output_dir), "html": "refreshed", "audit": audit}
+
+
 def parse_args() -> argparse.Namespace:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -528,12 +554,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--audit-only", action="store_true")
+    parser.add_argument("--refresh-html", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    result = audit_package(args.output) if args.audit_only else build_package(args)
+    if args.audit_only:
+        result = audit_package(args.output)
+    elif args.refresh_html:
+        result = refresh_html(args.output)
+    else:
+        result = build_package(args)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

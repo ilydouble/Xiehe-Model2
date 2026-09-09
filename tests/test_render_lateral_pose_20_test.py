@@ -57,6 +57,24 @@ class LateralPose20ReviewTests(unittest.TestCase):
             self.assertTrue((root / "keep.txt").exists())
             self.assertFalse((root / "._keep.txt").exists())
 
+    def test_generated_html_keeps_javascript_newline_escaped(self):
+        report = {
+            "summary": {
+                "images": 1,
+                "first": 1,
+                "second": 0,
+                "risk_images": 0,
+                "missing_images": 0,
+                "false_positive_images": 0,
+            },
+            "official_metrics": {},
+        }
+        html_text = renderer.build_html(report)
+        renderer.validate_html_runtime(html_text)
+        broken = html_text.replace(chr(92) + "n')", chr(10) + "')")
+        with self.assertRaisesRegex(ValueError, "invalid JavaScript newline"):
+            renderer.validate_html_runtime(broken)
+
 
 if __name__ == "__main__":
     unittest.main()
