@@ -48,6 +48,15 @@ class LateralPose20ReviewTests(unittest.TestCase):
     def test_bbox_iou(self):
         self.assertAlmostEqual(renderer.bbox_iou([0, 0, 10, 10], [5, 5, 15, 15]), 25 / 175)
 
+    def test_remove_apple_double(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "keep.txt").write_text("keep")
+            (root / "._keep.txt").write_text("metadata")
+            self.assertEqual(renderer.remove_apple_double(root), 1)
+            self.assertTrue((root / "keep.txt").exists())
+            self.assertFalse((root / "._keep.txt").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

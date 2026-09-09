@@ -337,6 +337,13 @@ def write_file_manifest(root: Path) -> None:
             writer.writerow([path.relative_to(root).as_posix(), path.stat().st_size, sha256_file(path)])
 
 
+def remove_apple_double(root: Path) -> int:
+    paths = sorted(path for path in root.rglob("._*") if path.is_file())
+    for path in paths:
+        path.unlink()
+    return len(paths)
+
+
 def audit_package(output_dir: Path, expected: int | None = None) -> dict[str, Any]:
     from PIL import Image
 
@@ -486,6 +493,9 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
             if not args.evaluation_dir.is_dir():
                 raise FileNotFoundError(args.evaluation_dir)
             shutil.copytree(args.evaluation_dir, staging / "evaluation")
+        removed_apple_double = remove_apple_double(staging)
+        report["removed_apple_double_files"] = removed_apple_double
+        (staging / "build_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         write_file_manifest(staging)
         audit = audit_package(staging, len(records))
         if audit["status"] != "passed":
