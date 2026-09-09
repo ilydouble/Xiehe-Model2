@@ -261,9 +261,9 @@ def build_train_args(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def build_test_args(args: argparse.Namespace, *, focused: bool) -> dict[str, Any]:
-    """Build final test arguments; full-spine evaluation is the primary report."""
-    result: dict[str, Any] = {
+def build_test_args(args: argparse.Namespace) -> dict[str, Any]:
+    """Build final full-spine test arguments without class filtering."""
+    return {
         "data": str(args.data.resolve()),
         "split": "test",
         "imgsz": args.imgsz,
@@ -271,12 +271,9 @@ def build_test_args(args: argparse.Namespace, *, focused: bool) -> dict[str, Any
         "device": args.device,
         "workers": args.workers,
         "project": str(args.project.resolve()),
-        "name": f"{args.name}_test_C2_C7" if focused else f"{args.name}_test_all_spine",
+        "name": f"{args.name}_test_all_spine",
         "plots": True,
     }
-    if focused:
-        result["classes"] = FOCUS_CLASS_IDS
-    return result
 
 
 def parse_args() -> argparse.Namespace:
@@ -298,7 +295,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--amp", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--exist-ok", action="store_true")
-    parser.add_argument("--skip-final-test", action="store_true", help="Skip both full-spine and focused C2/C7 final test evaluations")
+    parser.add_argument("--skip-final-test", action="store_true", help="Skip the final full-spine test evaluation")
     parser.add_argument("--resume", nargs="?", const="auto", help="Resume from a checkpoint path; without a path use project/name/weights/last.pt")
     parser.add_argument("--dry-run", action="store_true", help="Validate all labels and print settings without importing Ultralytics")
     return parser.parse_args()
@@ -322,7 +319,7 @@ def main() -> None:
         print(f"Initialization model: {args.model}")
         print(json.dumps(train_args, ensure_ascii=False, indent=2))
     if args.dry_run:
-        print("Dry run complete; training and final full-spine/C2-C7 tests were not started.")
+        print("Dry run complete; training and final full-spine test were not started.")
         return
     try:
         from ultralytics import YOLO
@@ -338,12 +335,9 @@ def main() -> None:
     print(f"Best checkpoint: {best_path}")
     if not args.skip_final_test:
         best_model = YOLO(str(best_path))
-        full_metrics = best_model.val(**build_test_args(args, focused=False))
-        print("Primary final test metrics for all labeled spine classes:")
+        full_metrics = best_model.val(**build_test_args(args))
+        print("Final test metrics for all labeled spine classes:")
         print(json.dumps(getattr(full_metrics, "results_dict", {}), ensure_ascii=False, indent=2))
-        focused_metrics = best_model.val(**build_test_args(args, focused=True))
-        print("Auxiliary final test metrics restricted to C2 and C7:")
-        print(json.dumps(getattr(focused_metrics, "results_dict", {}), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

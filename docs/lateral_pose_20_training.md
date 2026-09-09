@@ -6,13 +6,13 @@
 - 类别顺序：`C2、C7、T1-T13、L1-L5`，共20类
 - 明确不含：`C3-C6`
 - 每个椎体4个关键点：左上、右上、右下、左下
-- 主要指标：全部可评估椎体；辅助指标：C2和C7
+- 评估指标：全部可评估椎体
 
 数据集共995张：第一批297张人工接受且来源正确的图，第二批698张清洗后的图。拆分为train 796、val 99、test 100，按患者分组且没有跨集合患者。14张已确认旧标签错配图和1张等价重复图均不在训练清单中。
 
 默认训练还会读取`datasets/yolo_lateral_reviewed_combined_20cls_black_roi`：它只从train中的185张明显连续黑边图生成去黑边派生视图（第一批148、第二批37），并同步变换全部椎体bbox和四关键点。原始796张train图仍保留，因此实际训练视图为981张；val 99张和test 100张始终只使用原始全图。ROI与原图沿用同一患者split，不会把train患者引入val/test。
 
-T13只有第一批的2个对象，两个患者都固定在train。因此T13可以参与辅助训练，但val/test不能给出可靠的T13泛化指标；全脊柱汇总实际反映其余19类，另输出C2和C7专项指标。
+T13只有第一批的2个对象，两个患者都固定在train。因此T13可以参与辅助训练，但val/test不能给出可靠的T13泛化指标；全脊柱汇总实际反映其余19类。
 
 ## 上传到AutoDL
 
@@ -54,11 +54,10 @@ Mosaic、MixUp、Copy-Paste均关闭，保留轻微亮度/旋转/平移/缩放�
 ./3-model_training/train_lateral_pose_20.sh --best --batch 2
 ```
 
-训练结束后，脚本加载最佳权重，首先在完整test集上评估全部有标注的脊柱类别；随后再使用`classes=[0, 1]`输出C2和C7专项指标。完整脊柱评估是主结果，C2/C7仅作为辅助结果。输出位置：
+训练结束后，脚本加载最佳权重，在完整test集上评估全部有标注的脊柱类别，不设置任何类别过滤。输出位置：
 
 - 最佳权重：`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best/weights/best.pt`
 - 全脊柱测试：`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best_test_all_spine`
-- C2/C7专项测试：`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best_test_C2_C7`
 
 如需续训：
 
