@@ -557,5 +557,6 @@
 - Actions taken:
   - 复核最终20类训练YAML、manifest与逐类结果，确认100张为正式test且评估未过滤到C2/C7。
   - 核验E盘入口、预览、CSV、JSONL、评估附件、文件哈希和模型SHA-256，并将HTML入口排队在Codex浏览器面板打开。
+  - 浏览器访问后一度检出1个AppleDouble旁车；旁车随后自动消失，终验通过且最终AppleDouble为0。
   - 保留用户已有未提交文件和既有`analysis/`内容，不纳入本轮提交。
 - **Completed:** 2026-09-09
