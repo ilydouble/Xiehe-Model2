@@ -4,7 +4,7 @@
 维护侧面脊柱与骨盆关键点数据、训练和人工复核流程；当前任务已完成最终20类侧面模型在本地test集的整脊柱评估，并在E盘生成可逐张接受/拒绝的人工核验包。
 
 ## Current Phase
-Phase 60 (complete)
+Phase 61 (complete)
 
 ## Phases
 
@@ -367,6 +367,14 @@ Phase 60 (complete)
 - [x] 定位页面初始化失败原因并增加回归测试
 - [x] 修复JavaScript换行转义并提供原子HTML刷新入口
 - [x] 刷新E盘现有页面并在浏览器中终验首图显示
+- **Status:** complete
+
+### Phase 61: 20类脊柱与pelvis三点联合推理
+- [x] 核对旧推理入口、最终权重和两个Pose模型契约
+- [x] 将正式批量推理入口更新为20类脊柱+pelvis三点联合推理
+- [x] 每个脊柱类别与pelvis实例均只保留最高置信度结果
+- [x] 输出联合图、单模型图、逐图JSON、JSONL、统计和静态HTML
+- [x] 通过单元测试、脚本语法检查和真实单图双模型测试
 - **Status:** complete
 
 ## Key Questions

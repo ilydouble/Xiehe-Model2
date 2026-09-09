@@ -1,402 +1,326 @@
 #!/usr/bin/env python3
-"""
-批量预测脚本
-同时使用Corner模型和CFH检测模型进行预测，并可视化结果
-"""
-import os
+"""Run the final 20-class lateral-spine and three-keypoint pelvis models together."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import html
+import json
+from collections import defaultdict
+from pathlib import Path
+from typing import Any, Sequence
+
 import cv2
 import numpy as np
-from pathlib import Path
-from ultralytics import YOLO
-from tqdm import tqdm
-import json
-import random
 
 
-def draw_corner_results(image, result, colors):
-    """绘制Corner模型结果（椎体+关键点）"""
-    img = image.copy()
-    h, w = img.shape[:2]
-    
-    # 椎体类别名称
-    vertebra_names = ['C7', 'L1', 'L2', 'L3', 'L4', 'L5', 
-                      'T1', 'T2', 'T3', 'T4', 'T5', 'T6',
-                      'T7', 'T8', 'T9', 'T10', 'T11', 'T12']
-    
-    if result.keypoints is not None and len(result.keypoints) > 0:
-        for i, (box, kpts) in enumerate(zip(result.boxes, result.keypoints)):
-            # 获取类别和置信度
-            cls_id = int(box.cls[0])
-            conf = float(box.conf[0])
-            
-            if cls_id >= len(vertebra_names):
-                continue
-            
-            vertebra_name = vertebra_names[cls_id]
-            color = colors[cls_id % len(colors)]
-            
-            # 绘制边界框
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-            
-            # 绘制标签
-            label = f'{vertebra_name} {conf:.2f}'
-            label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-            cv2.rectangle(img, (x1, y1 - label_size[1] - 10), 
-                         (x1 + label_size[0], y1), color, -1)
-            cv2.putText(img, label, (x1, y1 - 5),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-            
-            # 绘制关键点
-            if kpts.data is not None and len(kpts.data) > 0:
-                keypoints = kpts.data[0].cpu().numpy()  # shape: (4, 3)
-                
-                # 绘制4个角点
-                for j, (kx, ky, kv) in enumerate(keypoints):
-                    if kv > 0.5:  # 可见性阈值
-                        kx_px = int(kx)
-                        ky_px = int(ky)
-                        
-                        # 绘制关键点
-                        cv2.circle(img, (kx_px, ky_px), 5, color, -1)
-                        cv2.circle(img, (kx_px, ky_px), 7, (255, 255, 255), 2)
-                        
-                        # 标注角点编号
-                        cv2.putText(img, str(j+1), (kx_px + 10, ky_px - 10),
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-                
-                # 连接关键点形成四边形
-                if len(keypoints) == 4:
-                    pts = []
-                    for kx, ky, kv in keypoints:
-                        if kv > 0.5:
-                            pts.append([int(kx), int(ky)])
-                    
-                    if len(pts) == 4:
-                        pts = np.array(pts, dtype=np.int32)
-                        cv2.polylines(img, [pts], True, color, 2)
-    
-    return img
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SPINE_MODEL = PROJECT_ROOT / "3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best/weights/best.pt"
+DEFAULT_PELVIS_MODEL = PROJECT_ROOT / "4-model_training_CFH/runs/yolo11l_pelvis_3kpt_roi_mixed_best/weights/best.pt"
+DEFAULT_IMAGE_DIR = PROJECT_ROOT / "datasets/yolo_lateral_reviewed_combined_20cls/images/test"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "datasets/lateral_combined_predictions"
+
+SPINE_NAMES = [
+    "C2", "C7",
+    "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12", "T13",
+    "L1", "L2", "L3", "L4", "L5",
+]
+PELVIS_KEYPOINT_NAMES = ["CFH", "S1_left", "S1_right"]
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
+PELVIS_POINT_COLORS = [(255, 80, 210), (40, 210, 255), (50, 150, 255)]
 
 
-def draw_cfh_results(image, result, color=(0, 255, 0)):
-    """绘制CFH检测结果"""
-    img = image.copy()
-    
-    if result.boxes is not None and len(result.boxes) > 0:
-        for box in result.boxes:
-            # 获取坐标和置信度
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            conf = float(box.conf[0])
-            
-            # 计算中心点
-            cx = int((x1 + x2) / 2)
-            cy = int((y1 + y2) / 2)
-            
-            # 绘制边界框
-            cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
-            
-            # 绘制中心点
-            cv2.circle(img, (cx, cy), 10, (0, 0, 255), -1)
-            cv2.circle(img, (cx, cy), 12, (255, 255, 255), 2)
-            
-            # 绘制标签
-            label = f'CFH {conf:.2f}'
-            label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)
-            cv2.rectangle(img, (x1, y1 - label_size[1] - 15), 
-                         (x1 + label_size[0] + 10, y1), color, -1)
-            cv2.putText(img, label, (x1 + 5, y1 - 8),
-                       cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-    
-    return img
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
-def draw_combined_results(image, corner_result, cfh_result, colors):
-    """绘制组合结果（Corner + CFH）"""
-    img = image.copy()
-    
-    # 先绘制Corner结果
-    img = draw_corner_results(img, corner_result, colors)
-    
-    # 再绘制CFH结果
-    img = draw_cfh_results(img, cfh_result, color=(255, 0, 255))
-    
-    # 添加图例
-    legend_y = 30
-    cv2.putText(img, 'Corner Model: Vertebrae + Keypoints', (10, legend_y),
-               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-    cv2.putText(img, 'CFH Model: Femoral Head', (10, legend_y + 35),
-               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
-    
-    return img
+def discover_images(image_dir: Path, recursive: bool = True) -> list[Path]:
+    iterator = image_dir.rglob("*") if recursive else image_dir.glob("*")
+    return sorted(path for path in iterator if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES)
 
 
-def batch_predict(
-    corner_model_path,
-    cfh_model_path,
-    image_dir,
-    output_dir,
-    num_samples=10,
-    conf_threshold=0.25
-):
-    """
-    批量预测
-    
-    参数:
-        corner_model_path: Corner模型路径
-        cfh_model_path: CFH模型路径
-        image_dir: 图像目录
-        output_dir: 输出目录
-        num_samples: 测试样本数量
-        conf_threshold: 置信度阈值
-    """
-    print('=' * 80)
-    print('🚀 批量预测测试')
-    print('=' * 80)
-    print(f'Corner模型: {corner_model_path}')
-    print(f'CFH模型: {cfh_model_path}')
-    print(f'图像目录: {image_dir}')
-    print(f'输出目录: {output_dir}')
-    print(f'样本数量: {num_samples}')
-    print()
-    
-    # 创建输出目录
-    output_path = Path(output_dir)
-    corner_dir = output_path / 'corner_only'
-    cfh_dir = output_path / 'cfh_only'
-    combined_dir = output_path / 'combined'
-    
-    for d in [corner_dir, cfh_dir, combined_dir]:
-        d.mkdir(parents=True, exist_ok=True)
-    
-    # 加载模型
-    print('📦 加载模型...')
-    corner_model = YOLO(corner_model_path)
-    cfh_model = YOLO(cfh_model_path)
-    print('✅ 模型加载完成')
-    print()
-    
-    # 获取图像文件
-    image_path = Path(image_dir)
-    image_files = list(image_path.glob('*.png')) + list(image_path.glob('*.jpg'))
-    
-    if len(image_files) == 0:
-        print('❌ 未找到图像文件')
-        return
-    
-    # 随机选择样本
-    samples = random.sample(image_files, min(num_samples, len(image_files)))
-    
-    print(f'📊 从 {len(image_files)} 张图像中选择 {len(samples)} 个样本进行测试')
-    print()
-    
-    # 生成颜色
-    colors = [
-        (255, 0, 0), (0, 255, 0), (0, 0, 255),
-        (255, 255, 0), (255, 0, 255), (0, 255, 255),
-        (128, 0, 0), (0, 128, 0), (0, 0, 128),
-        (128, 128, 0), (128, 0, 128), (0, 128, 128),
-        (255, 128, 0), (255, 0, 128), (128, 255, 0),
-        (0, 255, 128), (128, 0, 255), (0, 128, 255)
+def tensor_rows(result: Any, expected_keypoints: int) -> list[dict[str, Any]]:
+    if result.boxes is None or result.keypoints is None:
+        return []
+    classes = result.boxes.cls.detach().cpu().tolist()
+    scores = result.boxes.conf.detach().cpu().tolist()
+    boxes = result.boxes.xyxy.detach().cpu().tolist()
+    keypoints = result.keypoints.data.detach().cpu().tolist()
+    rows: list[dict[str, Any]] = []
+    for class_id, score, bbox, points in zip(classes, scores, boxes, keypoints):
+        if len(points) != expected_keypoints:
+            raise ValueError(f"Expected {expected_keypoints} keypoints, found {len(points)}")
+        rows.append({
+            "class_id": int(class_id),
+            "confidence": float(score),
+            "bbox_xyxy": [float(value) for value in bbox],
+            "keypoints": [[float(value) for value in point] for point in points],
+        })
+    return rows
+
+
+def select_spine_predictions(predictions: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep exactly the highest-confidence prediction for each vertebra class."""
+    grouped: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for prediction in predictions:
+        class_id = int(prediction["class_id"])
+        if not 0 <= class_id < len(SPINE_NAMES):
+            raise ValueError(f"Invalid spine class id: {class_id}")
+        grouped[class_id].append(prediction)
+    return [
+        max(grouped[class_id], key=lambda item: float(item["confidence"]))
+        for class_id in sorted(grouped)
     ]
-    
-    # 统计信息
-    stats = {
-        'total_images': len(samples),
-        'corner_detections': 0,
-        'cfh_detections': 0,
-        'corner_keypoints': 0
+
+
+def select_pelvis_prediction(predictions: Sequence[dict[str, Any]]) -> dict[str, Any] | None:
+    """Keep the highest-confidence pelvis instance."""
+    if not predictions:
+        return None
+    return max(predictions, key=lambda item: float(item["confidence"]))
+
+
+def model_names(model: Any) -> list[str]:
+    names = model.names
+    if isinstance(names, dict):
+        return [str(names[index]) for index in range(len(names))]
+    return [str(name) for name in names]
+
+
+def validate_model_contract(model: Any, expected_names: Sequence[str], expected_keypoints: int, label: str) -> None:
+    names = model_names(model)
+    keypoint_shape = list(model.model.yaml.get("kpt_shape", []))
+    if model.task != "pose" or names != list(expected_names) or keypoint_shape != [expected_keypoints, 3]:
+        raise ValueError(
+            f"Unexpected {label} model contract: task={model.task}, names={names}, kpt_shape={keypoint_shape}"
+        )
+
+
+def _point_visible(point: Sequence[float], threshold: float) -> bool:
+    return len(point) < 3 or float(point[2]) >= threshold
+
+
+def _draw_label(image: np.ndarray, text: str, anchor: tuple[int, int], color: tuple[int, int, int]) -> None:
+    x, y = anchor
+    (width, height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.52, 1)
+    y = max(height + 8, y)
+    cv2.rectangle(image, (x, y - height - 7), (x + width + 6, y + 2), color, -1)
+    cv2.putText(image, text, (x + 3, y - 3), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 1, cv2.LINE_AA)
+
+
+def draw_spine(image: np.ndarray, predictions: Sequence[dict[str, Any]], keypoint_confidence: float) -> np.ndarray:
+    output = image.copy()
+    for prediction in predictions:
+        class_id = int(prediction["class_id"])
+        color = (55, 210, 105)
+        visible = [point for point in prediction["keypoints"] if _point_visible(point, keypoint_confidence)]
+        if len(visible) == 4:
+            polygon = np.asarray([[round(point[0]), round(point[1])] for point in visible], dtype=np.int32)
+            cv2.polylines(output, [polygon], True, color, 2, cv2.LINE_AA)
+        for point in visible:
+            cv2.circle(output, (round(point[0]), round(point[1])), 4, color, -1, cv2.LINE_AA)
+        x1, y1, x2, y2 = [round(value) for value in prediction["bbox_xyxy"]]
+        cv2.rectangle(output, (x1, y1), (x2, y2), color, 1, cv2.LINE_AA)
+        _draw_label(output, f"{SPINE_NAMES[class_id]} {prediction['confidence']:.2f}", (x1, y1), color)
+    return output
+
+
+def draw_pelvis(image: np.ndarray, prediction: dict[str, Any] | None, keypoint_confidence: float) -> np.ndarray:
+    output = image.copy()
+    if prediction is None:
+        return output
+    x1, y1, x2, y2 = [round(value) for value in prediction["bbox_xyxy"]]
+    cv2.rectangle(output, (x1, y1), (x2, y2), (255, 100, 210), 2, cv2.LINE_AA)
+    _draw_label(output, f"pelvis {prediction['confidence']:.2f}", (x1, y1), (255, 100, 210))
+    for index, point in enumerate(prediction["keypoints"]):
+        if not _point_visible(point, keypoint_confidence):
+            continue
+        x, y = round(point[0]), round(point[1])
+        color = PELVIS_POINT_COLORS[index]
+        cv2.circle(output, (x, y), 7, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.circle(output, (x, y), 5, color, -1, cv2.LINE_AA)
+        _draw_label(output, PELVIS_KEYPOINT_NAMES[index], (x + 8, y), color)
+    return output
+
+
+def serialize_record(
+    source: Path,
+    relative: Path,
+    width: int,
+    height: int,
+    spine: Sequence[dict[str, Any]],
+    pelvis: dict[str, Any] | None,
+) -> dict[str, Any]:
+    spine_rows = []
+    for prediction in spine:
+        row = dict(prediction)
+        row["class_name"] = SPINE_NAMES[int(row["class_id"])]
+        spine_rows.append(row)
+    pelvis_row = None
+    if pelvis is not None:
+        pelvis_row = dict(pelvis)
+        pelvis_row["class_name"] = "pelvis"
+        pelvis_row["named_keypoints"] = {
+            name: point for name, point in zip(PELVIS_KEYPOINT_NAMES, pelvis["keypoints"])
+        }
+    return {
+        "source_image": str(source.resolve()),
+        "relative_image": relative.as_posix(),
+        "width": width,
+        "height": height,
+        "spine_predictions": spine_rows,
+        "pelvis_prediction": pelvis_row,
     }
-    
-    # 批量预测
-    print('🔍 开始预测...')
-    for img_file in tqdm(samples, desc='处理图像'):
-        # 读取图像
-        img = cv2.imread(str(img_file))
-        if img is None:
-            continue
 
-        # Corner模型预测
-        corner_results = corner_model.predict(
-            source=str(img_file),
-            conf=conf_threshold,
-            verbose=False
+
+def build_gallery(records: Sequence[dict[str, Any]], summary: dict[str, Any]) -> str:
+    cards = []
+    for record in records:
+        relative = html.escape(record["relative_image"], quote=True)
+        preview = html.escape(record["combined_preview"], quote=True)
+        spine_count = len(record["spine_predictions"])
+        pelvis = record["pelvis_prediction"]
+        pelvis_text = "漏检" if pelvis is None else f"{float(pelvis['confidence']):.3f}"
+        cards.append(
+            f'<article><a href="{preview}"><img loading="lazy" src="{preview}"></a>'
+            f'<div><b>{relative}</b><span>脊柱 {spine_count}/20 · pelvis {pelvis_text}</span></div></article>'
         )
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>20类脊柱 + 三点 pelvis 联合推理</title><style>
+body{{margin:0;background:#0d1118;color:#edf2f8;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}}header{{padding:18px 22px;background:#111824;position:sticky;top:0}}h1{{margin:0 0 6px;font-size:23px}}header p{{margin:0;color:#aab8ca}}main{{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px;padding:14px}}article{{background:#151d29;border:1px solid #2c394d;border-radius:9px;overflow:hidden}}img{{display:block;width:100%;height:auto}}article div{{display:grid;gap:5px;padding:10px 12px}}b{{font-size:13px;word-break:break-all}}span{{font-size:13px;color:#aab8ca}}
+</style></head><body><header><h1>20类整脊柱 + pelvis 三关键点联合推理</h1><p>{summary['processed_images']}张 · 每个脊柱类别只保留最高置信度 · pelvis只保留最高置信度实例</p></header><main>{''.join(cards)}</main></body></html>"""
 
-        # CFH模型预测
-        cfh_results = cfh_model.predict(
-            source=str(img_file),
-            conf=conf_threshold,
-            verbose=False
+
+def run_inference(args: argparse.Namespace) -> dict[str, Any]:
+    from ultralytics import YOLO
+
+    for path in (args.spine_model, args.pelvis_model, args.image_dir):
+        if not path.exists():
+            raise FileNotFoundError(path)
+    images = discover_images(args.image_dir, recursive=not args.no_recursive)
+    if args.limit > 0:
+        images = images[: args.limit]
+    if not images:
+        raise ValueError(f"No supported images found in {args.image_dir}")
+
+    spine_model = YOLO(str(args.spine_model))
+    pelvis_model = YOLO(str(args.pelvis_model))
+    validate_model_contract(spine_model, SPINE_NAMES, 4, "spine")
+    validate_model_contract(pelvis_model, ["pelvis"], 3, "pelvis")
+
+    output_dirs = {
+        "spine": args.output_dir / "spine_only",
+        "pelvis": args.output_dir / "pelvis_only",
+        "combined": args.output_dir / "combined",
+        "json": args.output_dir / "json",
+    }
+    for directory in output_dirs.values():
+        directory.mkdir(parents=True, exist_ok=True)
+
+    records: list[dict[str, Any]] = []
+    for index, image_path in enumerate(images, 1):
+        relative = image_path.relative_to(args.image_dir)
+        image = cv2.imread(str(image_path))
+        if image is None:
+            raise ValueError(f"Unable to read image: {image_path}")
+        height, width = image.shape[:2]
+        common = {
+            "source": str(image_path),
+            "imgsz": args.imgsz,
+            "conf": args.confidence,
+            "iou": args.iou,
+            "device": args.device,
+            "verbose": False,
+        }
+        spine_raw = tensor_rows(spine_model.predict(max_det=40, **common)[0], expected_keypoints=4)
+        pelvis_raw = tensor_rows(pelvis_model.predict(max_det=5, **common)[0], expected_keypoints=3)
+        spine = select_spine_predictions(spine_raw)
+        pelvis = select_pelvis_prediction(pelvis_raw)
+
+        output_relative = relative.with_suffix(".jpg")
+        json_relative = relative.with_suffix(".json")
+        destinations = {name: directory / output_relative for name, directory in output_dirs.items() if name != "json"}
+        for destination in [*destinations.values(), output_dirs["json"] / json_relative]:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+
+        spine_image = draw_spine(image, spine, args.keypoint_confidence)
+        pelvis_image = draw_pelvis(image, pelvis, args.keypoint_confidence)
+        combined_image = draw_pelvis(spine_image, pelvis, args.keypoint_confidence)
+        for destination, rendered in (
+            (destinations["spine"], spine_image),
+            (destinations["pelvis"], pelvis_image),
+            (destinations["combined"], combined_image),
+        ):
+            if not cv2.imwrite(str(destination), rendered):
+                raise OSError(f"Unable to write image: {destination}")
+
+        record = serialize_record(image_path, relative, width, height, spine, pelvis)
+        record["combined_preview"] = (Path("combined") / output_relative).as_posix()
+        (output_dirs["json"] / json_relative).write_text(
+            json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
+        records.append(record)
+        print(f"Processed {index}/{len(images)}: {relative}", flush=True)
 
-        corner_result = corner_results[0]
-        cfh_result = cfh_results[0]
-
-        # 统计
-        if corner_result.boxes is not None:
-            stats['corner_detections'] += len(corner_result.boxes)
-
-        if corner_result.keypoints is not None:
-            for kpts in corner_result.keypoints:
-                if kpts.data is not None:
-                    stats['corner_keypoints'] += len(kpts.data[0])
-
-        if cfh_result.boxes is not None:
-            stats['cfh_detections'] += len(cfh_result.boxes)
-
-        # 绘制结果
-        corner_img = draw_corner_results(img, corner_result, colors)
-        cfh_img = draw_cfh_results(img, cfh_result)
-        combined_img = draw_combined_results(img, corner_result, cfh_result, colors)
-
-        # 保存结果
-        output_name = img_file.name
-        cv2.imwrite(str(corner_dir / f'corner_{output_name}'), corner_img)
-        cv2.imwrite(str(cfh_dir / f'cfh_{output_name}'), cfh_img)
-        cv2.imwrite(str(combined_dir / f'combined_{output_name}'), combined_img)
-
-    print()
-    print('=' * 80)
-    print('✅ 预测完成！')
-    print('=' * 80)
-    print(f'处理图像: {stats["total_images"]}')
-    print(f'Corner检测: {stats["corner_detections"]} 个椎体')
-    print(f'Corner关键点: {stats["corner_keypoints"]} 个点')
-    print(f'CFH检测: {stats["cfh_detections"]} 个股骨头')
-    print()
-    print('结果保存在:')
-    print(f'  Corner结果: {corner_dir}')
-    print(f'  CFH结果: {cfh_dir}')
-    print(f'  组合结果: {combined_dir}')
-    print()
-
-    # 保存统计信息
-    stats_file = output_path / 'prediction_stats.json'
-    with open(stats_file, 'w') as f:
-        json.dump(stats, f, indent=2)
-
-    print(f'📊 统计信息已保存: {stats_file}')
-
-    return stats
-
-
-def create_comparison_grid(output_dir, num_display=4):
-    """创建对比网格图"""
-    print()
-    print('📊 创建对比网格图...')
-
-    output_path = Path(output_dir)
-    corner_dir = output_path / 'corner_only'
-    cfh_dir = output_path / 'cfh_only'
-    combined_dir = output_path / 'combined'
-
-    # 获取文件
-    corner_files = sorted(list(corner_dir.glob('corner_*.png')))[:num_display]
-
-    if len(corner_files) == 0:
-        print('❌ 没有找到结果图像')
-        return
-
-    # 创建网格
-    for corner_file in corner_files:
-        base_name = corner_file.name.replace('corner_', '')
-        cfh_file = cfh_dir / f'cfh_{base_name}'
-        combined_file = combined_dir / f'combined_{base_name}'
-
-        if not cfh_file.exists() or not combined_file.exists():
-            continue
-
-        # 读取图像
-        corner_img = cv2.imread(str(corner_file))
-        cfh_img = cv2.imread(str(cfh_file))
-        combined_img = cv2.imread(str(combined_file))
-
-        if corner_img is None or cfh_img is None or combined_img is None:
-            continue
-
-        # 调整大小
-        h, w = corner_img.shape[:2]
-        target_w = 800
-        target_h = int(h * target_w / w)
-
-        corner_img = cv2.resize(corner_img, (target_w, target_h))
-        cfh_img = cv2.resize(cfh_img, (target_w, target_h))
-        combined_img = cv2.resize(combined_img, (target_w, target_h))
-
-        # 添加标题
-        title_h = 50
-        corner_with_title = np.ones((target_h + title_h, target_w, 3), dtype=np.uint8) * 255
-        cfh_with_title = np.ones((target_h + title_h, target_w, 3), dtype=np.uint8) * 255
-        combined_with_title = np.ones((target_h + title_h, target_w, 3), dtype=np.uint8) * 255
-
-        corner_with_title[title_h:, :] = corner_img
-        cfh_with_title[title_h:, :] = cfh_img
-        combined_with_title[title_h:, :] = combined_img
-
-        cv2.putText(corner_with_title, 'Corner Model', (10, 35),
-                   cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 128, 0), 2)
-        cv2.putText(cfh_with_title, 'CFH Detection Model', (10, 35),
-                   cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 128, 255), 2)
-        cv2.putText(combined_with_title, 'Combined Results', (10, 35),
-                   cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 0, 255), 2)
-
-        # 水平拼接
-        grid = np.hstack([corner_with_title, cfh_with_title, combined_with_title])
-
-        # 保存网格图
-        grid_file = output_path / f'grid_{base_name}'
-        cv2.imwrite(str(grid_file), grid)
-        print(f'  ✅ {grid_file.name}')
-
-    print(f'✅ 对比网格图已保存到: {output_path}')
-
-
-def main():
-    """主函数"""
-    import argparse
-
-    parser = argparse.ArgumentParser(description='批量预测测试')
-    parser.add_argument('--corner-model', type=str,
-                       default='3-model_training/runs/pose/yolo11s_corner_standard/weights/best.pt',
-                       help='Corner模型路径')
-    parser.add_argument('--cfh-model', type=str,
-                       default='4-model_training_CFH/runs/cfh_detection/standard/weights/best.pt',
-                       help='CFH模型路径')
-    parser.add_argument('--image-dir', type=str,
-                       default='datasets/yolo_corner/images',
-                       help='图像目录')
-    parser.add_argument('--output-dir', type=str,
-                       default='datasets/prediction_results',
-                       help='输出目录')
-    parser.add_argument('--num-samples', type=int, default=10,
-                       help='测试样本数量')
-    parser.add_argument('--conf', type=float, default=0.25,
-                       help='置信度阈值')
-    parser.add_argument('--create-grid', action='store_true',
-                       help='创建对比网格图')
-
-    args = parser.parse_args()
-
-    # 批量预测
-    stats = batch_predict(
-        corner_model_path=args.corner_model,
-        cfh_model_path=args.cfh_model,
-        image_dir=args.image_dir,
-        output_dir=args.output_dir,
-        num_samples=args.num_samples,
-        conf_threshold=args.conf
+    summary = {
+        "processed_images": len(records),
+        "images_with_complete_20_class_spine": sum(len(row["spine_predictions"]) == 20 for row in records),
+        "images_with_pelvis": sum(row["pelvis_prediction"] is not None for row in records),
+        "spine_model": str(args.spine_model.resolve()),
+        "spine_model_sha256": sha256_file(args.spine_model),
+        "pelvis_model": str(args.pelvis_model.resolve()),
+        "pelvis_model_sha256": sha256_file(args.pelvis_model),
+        "settings": {
+            "imgsz": args.imgsz,
+            "confidence": args.confidence,
+            "iou": args.iou,
+            "keypoint_confidence": args.keypoint_confidence,
+            "device": args.device,
+            "selection": "highest-confidence prediction per spine class and highest-confidence pelvis instance",
+        },
+    }
+    with (args.output_dir / "predictions.jsonl").open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+    (args.output_dir / "prediction_stats.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-
-    # 创建对比网格
-    if args.create_grid:
-        create_comparison_grid(args.output_dir, num_display=min(4, args.num_samples))
-
-    print()
-    print('🎉 全部完成！')
-    print(f'查看结果: open {args.output_dir}')
+    (args.output_dir / "index.html").write_text(build_gallery(records, summary), encoding="utf-8")
+    return summary
 
 
-if __name__ == '__main__':
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--spine-model", "--corner-model", dest="spine_model", type=Path, default=DEFAULT_SPINE_MODEL)
+    parser.add_argument("--pelvis-model", "--cfh-model", dest="pelvis_model", type=Path, default=DEFAULT_PELVIS_MODEL)
+    parser.add_argument("--image-dir", type=Path, default=DEFAULT_IMAGE_DIR)
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--limit", "--num-samples", dest="limit", type=int, default=0, help="0 means all images")
+    parser.add_argument("--confidence", "--conf", dest="confidence", type=float, default=0.10)
+    parser.add_argument("--keypoint-confidence", type=float, default=0.25)
+    parser.add_argument("--iou", type=float, default=0.70)
+    parser.add_argument("--imgsz", type=int, default=1280)
+    parser.add_argument("--device", default="cpu")
+    parser.add_argument("--no-recursive", action="store_true")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    if args.limit < 0:
+        raise SystemExit("--limit must be >= 0")
+    for name in ("confidence", "keypoint_confidence", "iou"):
+        value = float(getattr(args, name))
+        if not 0 <= value <= 1:
+            raise SystemExit(f"--{name.replace('_', '-')} must be between 0 and 1")
+    summary = run_inference(args)
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
     main()
-

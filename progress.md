@@ -568,3 +568,12 @@
   - 修复生成器，加入HTML运行时校验、原子刷新参数和回归测试；6项单元测试、Python语法及Node JavaScript语法检查通过。
   - 原地刷新E盘`index.html`，独立审计确认100条索引、100张预览、100条预测且错误0；首条整脊柱预览读取和视觉检查正常。
 - **Completed:** 2026-09-09
+
+### Phase 61: 20类脊柱与pelvis三点联合推理
+- **Status:** complete
+- Actions taken:
+  - 将`5-inference/batch_predict.py`从旧18类Corner+CFH检测流程更新为最终20类脊柱Pose+pelvis三点Pose联合推理。
+  - 加入模型契约检查、每类Top-1筛选、联合/单模型可视化以及像素坐标JSON/JSONL输出。
+  - 更新两个shell入口和README，保留旧参数名兼容，并自动探测本机Ultralytics Python环境。
+  - 4项单元测试、Python和shell语法、帮助入口、正式shell与兼容wrapper真实单图推理均通过；联合图视觉检查正常。
+- **Completed:** 2026-09-09

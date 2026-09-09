@@ -328,3 +328,9 @@
 - 用户反馈E盘HTML页面无图。复核确认100张preview均存在且首行相对路径可读取；根因是生成HTML时Python把CSV导出代码中的换行转义变成了JavaScript字符串内的实际换行，使整段内联脚本语法错误，`refresh()`未运行，图片src从未赋值。
 - 生成器已改为输出JavaScript字面量反斜杠n，并新增`validate_html_runtime`、`--refresh-html`及回归测试；6项测试和Node语法检查通过。
 - E盘现有包已原子刷新；独立审计仍为index 100、preview 100、predictions 100、错误0。首条索引预览可读取并完成视觉核验，包含整脊柱全图与颈胸、胸段、胸腰三段放大图。
+
+## Session: 2026-09-09 20类脊柱与pelvis三点联合推理
+- 原`5-inference/batch_predict.py`仍使用18类Corner权重和CFH检测框模型，类别与三点Pose任务均已过时；正式入口已改为最终20类脊柱Pose权重和pelvis三关键点Pose权重。
+- 两模型在同一原图上独立推理；脊柱先按类别分组后只保留每类最高置信度预测，pelvis只保留最高置信度实例。
+- 输出包含spine_only、pelvis_only、combined、逐图JSON、predictions.jsonl、prediction_stats.json和无需脚本的index.html；坐标均为原图像素坐标。
+- 真实单图CPU/1280测试通过：检出19个脊柱类别和1个pelvis实例，JSON包含CFH、S1_left、S1_right命名点；联合图视觉检查正常。
