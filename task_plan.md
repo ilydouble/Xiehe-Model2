@@ -4,7 +4,7 @@
 维护侧面脊柱与骨盆关键点数据、训练和人工复核流程；当前任务是把20类侧面训练入口简化为单一`--best`预设：YOLO11l随机初始化、原图+ROI混合数据、300轮、1280、batch 4。
 
 ## Current Phase
-Phase 56 (in progress)
+Phase 57 (in progress)
 
 ## Phases
 
@@ -340,16 +340,16 @@ Phase 56 (in progress)
 - **Status:** complete
 
 ### Phase 56: 回传权重与测试集契约核对
-- [ ] 验证新回传权重的类别、关键点数、训练参数与文件完整性
-- [ ] 核对本地20类数据集test划分、标签和推理依赖
-- [ ] 固定测试指标、置信阈值和E盘输出目录
-- **Status:** in_progress
+- [x] 验证新回传权重的类别、关键点数、训练参数与文件完整性
+- [x] 核对本地20类数据集test划分、标签和推理依赖
+- [x] 固定测试指标、置信阈值和E盘输出目录
+- **Status:** complete
 
 ### Phase 57: 本地测试集正式评估
 - [ ] 在100张原图test集上运行模型评估
 - [ ] 保存总体、逐类bbox/pose指标和运行配置
 - [ ] 核验评估结果完整性并记录异常
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 58: E盘人工核验可视化包
 - [ ] 生成全量test预测叠加图、离线HTML、CSV和预测明细

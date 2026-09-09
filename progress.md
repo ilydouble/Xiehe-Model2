@@ -527,3 +527,11 @@
   - 确认E盘挂载点为`/Volumes/E`。
   - 枚举本机权重，定位最新文件`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best/weights/best.pt`（2026-09-09 09:22，约53 MB）。
   - 识别本地目标数据集`datasets/yolo_lateral_reviewed_combined_20cls`及已有双模型测试可视化实现，下一步核验模型/数据契约并决定复用范围。
+  - 加载best.pt并确认pose任务、20类顺序、4关键点和26,176,880参数；记录SHA-256。
+  - 运行真实数据dry-run，确认test为100张原图/1,892对象、第一批35张/第二批65张，数据和患者隔离校验通过。
+- **Completed:** 2026-09-09
+
+### Phase 57: 本地测试集正式评估
+- **Status:** in_progress
+- Actions taken:
+  - 固定在test split、imgsz 1280上计算全20类bbox与pose指标，输出到`analysis/lateral_20cls_test_eval_100_20260909`。

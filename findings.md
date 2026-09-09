@@ -309,3 +309,8 @@
 - 当前新权重候选为`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best/weights/best.pt`，修改时间为2026-09-09 09:22；仍需读取模型元数据确认类别与4关键点契约。
 - 目标test集预计为`datasets/yolo_lateral_reviewed_combined_20cls`中的100张原图；正式运行前以data.yaml和manifest复核。
 - 仓库已有未提交的`4-model_training_CFH/train_cfh_detection.sh`、`docs/lateral_dataset_merge_assessment.md`及未跟踪`analysis/`，本轮不得混入提交。
+- 权重加载验证通过：task=`pose`，20类名称及顺序与data.yaml完全一致，`kpt_shape=[4,3]`，参数量26,176,880，SHA-256为`69222022143bde8eb509373184208e76882c06352ced4179e75d188348f2485e`。
+- 回传run目录包含args、213轮results.csv、训练/验证曲线及best.pt；args确认YOLO11l-Pose从零训练、预设300轮、1280、batch 4、seed 42、rect=True，因patience 50在第213轮结束。
+- 数据全量dry-run通过：混合train 981视图/18,637对象，val 99/1,876，test 100/1,892；test来源为第一批35张、第二批65张，共99个患者组，无train-only ROI。
+- 正式指标采用Ultralytics test split默认低置信采样计算bbox与pose的P、R、mAP50、mAP50-95，输入1280；评估输出固定为`analysis/lateral_20cls_test_eval_100_20260909`。
+- E盘核验包固定为`/Volumes/E/spine_data/lateral_20cls_test_review_100_20260909`，采用0.10展示阈值保留低置信候选供人工检查，并拒绝覆盖同名现有目录。
