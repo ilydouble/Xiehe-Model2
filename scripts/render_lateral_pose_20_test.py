@@ -79,7 +79,7 @@ def tensor_rows(result: Any) -> list[dict[str, Any]]:
     ]
 
 
-def select_predictions(predictions: Sequence[dict[str, Any]]) -> tuple[dict[int, dict[str, Any]], dict[str, int]]:
+def select_predictions(predictions: Sequence[dict[str, Any]]) -> dict[int, dict[str, Any]]:
     grouped: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for prediction in predictions:
         class_id = int(prediction["class_id"])
@@ -87,13 +87,10 @@ def select_predictions(predictions: Sequence[dict[str, Any]]) -> tuple[dict[int,
             raise ValueError(f"invalid prediction class: {class_id}")
         grouped[class_id].append(prediction)
     selected: dict[int, dict[str, Any]] = {}
-    duplicates: dict[str, int] = {}
     for class_id, items in grouped.items():
         ranked = sorted(items, key=lambda item: float(item["score"]), reverse=True)
         selected[class_id] = ranked[0]
-        if len(ranked) > 1:
-            duplicates[CLASS_NAMES[class_id]] = len(ranked) - 1
-    return selected, duplicates
+    return selected
 
 
 def bbox_iou(first: Sequence[float], second: Sequence[float]) -> float:
@@ -109,7 +106,6 @@ def bbox_iou(first: Sequence[float], second: Sequence[float]) -> float:
 def compare_predictions(
     ground_truth: dict[int, dict[str, Any]],
     selected: dict[int, dict[str, Any]],
-    duplicates: dict[str, int],
     width: int,
     height: int,
     low_confidence: float = 0.25,
@@ -145,10 +141,6 @@ def compare_predictions(
     if false_positive_ids:
         tags.append(f"无GT误检{len(false_positive_ids)}类")
         risk_score += 50 * len(false_positive_ids)
-    duplicate_total = sum(duplicates.values())
-    if duplicate_total:
-        tags.append(f"重复候选{duplicate_total}")
-        risk_score += 12 * duplicate_total
     if low_confidence_ids:
         tags.append(f"低置信{len(low_confidence_ids)}类")
         risk_score += 15 * len(low_confidence_ids)
@@ -168,7 +160,6 @@ def compare_predictions(
         "missing_classes": [CLASS_NAMES[class_id] for class_id in missing_ids],
         "false_positive_classes": [CLASS_NAMES[class_id] for class_id in false_positive_ids],
         "low_confidence_classes": [CLASS_NAMES[class_id] for class_id in low_confidence_ids],
-        "duplicate_predictions": duplicates,
         "max_keypoint_error_percent_diagonal": max_error,
         "min_bbox_iou": min_iou,
         "risk_tags": tags,
@@ -292,9 +283,9 @@ def build_html(report: dict[str, Any]) -> str:
     pose_map = metrics.get("metrics/mAP50-95(P)")
     pose_text = "未提供" if pose_map is None else f"{pose_map:.4f}"
     return f"""<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>20类侧面Pose test人工核验</title><style>
-*{{box-sizing:border-box}}body{{margin:0;background:#0d1118;color:#edf2f8;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}}header{{position:sticky;top:0;z-index:4;background:#111824f2;padding:14px 20px;border-bottom:1px solid #2b3749}}h1{{font-size:23px;margin:0 0 7px}}.summary,.legend,.position{{color:#aab8ca;font-size:14px;margin:5px 0}}.controls{{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}}button,input,select,textarea{{background:#182235;color:#edf2f8;border:1px solid #3b4960;border-radius:7px;padding:8px 10px}}button{{cursor:pointer}}.viewer{{max-width:1920px;margin:14px auto;padding:0 12px}}.card{{background:#151d29;border:1px solid #2c394d;border-radius:10px;padding:12px}}.card img{{display:block;width:100%;max-height:calc(100vh - 315px);object-fit:contain;background:#080b0f}}.meta{{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}}.tag{{background:#303c4d;border-radius:13px;padding:4px 9px;font-size:13px}}.danger{{background:#81313b}}.ok{{background:#225b3a}}.review{{display:grid;gap:8px}}.decision{{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px}}.decision button{{min-height:45px;font-weight:700}}.accept{{background:#17633a}}.reject{{background:#7a2530}}button.active{{outline:3px solid #fff}}@media(max-width:800px){{.decision{{grid-template-columns:1fr 1fr}}}}</style></head><body><header><h1>20类侧面脊柱 Pose：test 人工核验</h1><div class=\"summary\">{summary['images']}张（第一批{summary['first']} / 第二批{summary['second']}） · 风险{summary['risk_images']}张 · 漏检{summary['missing_images']}张 · 无GT误检{summary['false_positive_images']}张 · 官方Pose mAP50-95 {pose_text}</div><div class=\"legend\">青=GT，绿=预测，红=漏检GT，橙=无GT预测；风险只用于排序，最终判断由人工保存。</div><div class=\"controls\"><input id=\"q\" placeholder=\"搜索文件名或类别\"><select id=\"filter\"><option value=\"all\">全部</option><option value=\"risk\">仅风险</option><option value=\"missing\">有漏检</option><option value=\"false\">有无GT误检</option><option value=\"duplicate\">有重复候选</option><option value=\"low\">有低置信</option><option value=\"error\">关键点误差≥1%</option><option value=\"first\">第一批</option><option value=\"second\">第二批</option><option value=\"todo\">未判断</option></select><button id=\"prev\">← 上一张</button><button id=\"next\">下一张 →</button><input id=\"jump\" type=\"number\" min=\"1\" style=\"width:82px\"><button id=\"export\">导出人工核验CSV</button></div></header><main class=\"viewer\"><section class=\"card\"><a id=\"link\" target=\"_blank\"><img id=\"preview\"></a><div class=\"meta\" id=\"meta\"></div><div class=\"review\"><div class=\"decision\"><button class=\"accept\" data-verdict=\"accepted\">✓ 接受并下一张 A</button><button class=\"reject\" data-verdict=\"rejected\">✕ 拒绝并下一张 R</button><button data-verdict=\"accept_after_edit\">修改后接受</button><button data-verdict=\"uncertain\">不确定</button></div><span id=\"status\" class=\"position\">当前：未判断</span><textarea id=\"note\" rows=\"2\" placeholder=\"人工备注\"></textarea></div><div id=\"position\" class=\"position\"></div></section></main><script src=\"review_data.js\"></script><script>
+*{{box-sizing:border-box}}body{{margin:0;background:#0d1118;color:#edf2f8;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}}header{{position:sticky;top:0;z-index:4;background:#111824f2;padding:14px 20px;border-bottom:1px solid #2b3749}}h1{{font-size:23px;margin:0 0 7px}}.summary,.legend,.position{{color:#aab8ca;font-size:14px;margin:5px 0}}.controls{{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}}button,input,select,textarea{{background:#182235;color:#edf2f8;border:1px solid #3b4960;border-radius:7px;padding:8px 10px}}button{{cursor:pointer}}.viewer{{max-width:1920px;margin:14px auto;padding:0 12px}}.card{{background:#151d29;border:1px solid #2c394d;border-radius:10px;padding:12px}}.card img{{display:block;width:100%;max-height:calc(100vh - 315px);object-fit:contain;background:#080b0f}}.meta{{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}}.tag{{background:#303c4d;border-radius:13px;padding:4px 9px;font-size:13px}}.danger{{background:#81313b}}.ok{{background:#225b3a}}.review{{display:grid;gap:8px}}.decision{{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px}}.decision button{{min-height:45px;font-weight:700}}.accept{{background:#17633a}}.reject{{background:#7a2530}}button.active{{outline:3px solid #fff}}@media(max-width:800px){{.decision{{grid-template-columns:1fr 1fr}}}}</style></head><body><header><h1>20类侧面脊柱 Pose：test 人工核验</h1><div class=\"summary\">{summary['images']}张（第一批{summary['first']} / 第二批{summary['second']}） · 风险{summary['risk_images']}张 · 漏检{summary['missing_images']}张 · 无GT误检{summary['false_positive_images']}张 · 官方Pose mAP50-95 {pose_text}</div><div class=\"legend\">青=GT，绿=预测，红=漏检GT，橙=无GT预测；每类只保留最高置信度预测。</div><div class=\"controls\"><input id=\"q\" placeholder=\"搜索文件名或类别\"><select id=\"filter\"><option value=\"all\">全部</option><option value=\"risk\">仅风险</option><option value=\"missing\">有漏检</option><option value=\"false\">有无GT误检</option><option value=\"low\">有低置信</option><option value=\"error\">关键点误差≥1%</option><option value=\"first\">第一批</option><option value=\"second\">第二批</option><option value=\"todo\">未判断</option></select><button id=\"prev\">← 上一张</button><button id=\"next\">下一张 →</button><input id=\"jump\" type=\"number\" min=\"1\" style=\"width:82px\"><button id=\"export\">导出人工核验CSV</button></div></header><main class=\"viewer\"><section class=\"card\"><a id=\"link\" target=\"_blank\"><img id=\"preview\"></a><div class=\"meta\" id=\"meta\"></div><div class=\"review\"><div class=\"decision\"><button class=\"accept\" data-verdict=\"accepted\">✓ 接受并下一张 A</button><button class=\"reject\" data-verdict=\"rejected\">✕ 拒绝并下一张 R</button><button data-verdict=\"accept_after_edit\">修改后接受</button><button data-verdict=\"uncertain\">不确定</button></div><span id=\"status\" class=\"position\">当前：未判断</span><textarea id=\"note\" rows=\"2\" placeholder=\"人工备注\"></textarea></div><div id=\"position\" class=\"position\"></div></section></main><script src=\"review_data.js\"></script><script>
 const $=id=>document.getElementById(id),d=window.LATERAL20_TEST_REVIEW,s=d.samples,key='lateral20-test-'+d.summary.model_sha256.slice(0,16),vt={{accepted:'接受',rejected:'拒绝',accept_after_edit:'修改后接受',uncertain:'不确定'}};let saved={{}},ids=[],at=0;try{{saved=JSON.parse(localStorage.getItem(key)||'{{}}')}}catch(e){{}}
-function match(x){{const q=$('q').value.trim().toLowerCase(),f=$('filter').value,r=saved[x.source_image]||{{}};if(q&&!x.search_text.includes(q))return false;return f==='all'||(f==='risk'&&x.risk_tags[0]!=='常规')||(f==='missing'&&x.missing_classes.length)||(f==='false'&&x.false_positive_classes.length)||(f==='duplicate'&&Object.keys(x.duplicate_predictions).length)||(f==='low'&&x.low_confidence_classes.length)||(f==='error'&&(x.max_keypoint_error_percent_diagonal||0)>=1)||f===x.source_batch||(f==='todo'&&!r.verdict)}}
+function match(x){{const q=$('q').value.trim().toLowerCase(),f=$('filter').value,r=saved[x.source_image]||{{}};if(q&&!x.search_text.includes(q))return false;return f==='all'||(f==='risk'&&x.risk_tags[0]!=='常规')||(f==='missing'&&x.missing_classes.length)||(f==='false'&&x.false_positive_classes.length)||(f==='low'&&x.low_confidence_classes.length)||(f==='error'&&(x.max_keypoint_error_percent_diagonal||0)>=1)||f===x.source_batch||(f==='todo'&&!r.verdict)}}
 function refresh(){{ids=s.map((x,i)=>i).filter(i=>match(s[i])).sort((a,b)=>s[b].risk_score-s[a].risk_score||s[a].file_name.localeCompare(s[b].file_name));at=Math.min(at,Math.max(0,ids.length-1));render()}}
 function render(){{const x=s[ids[at]],done=s.filter(x=>saved[x.source_image]?.verdict).length;$('summary').textContent=`已判断 ${{done}}/${{s.length}}；当前筛选 ${{ids.length}} 张；风险 ${{d.summary.risk_images}}，漏检 ${{d.summary.missing_images}}，无GT误检 ${{d.summary.false_positive_images}}`;if(!x){{$('preview').removeAttribute('src');$('meta').textContent='没有匹配样本';$('position').textContent='0/0';return}}$('preview').src=x.preview;$('link').href=x.preview;const bad=x.risk_tags[0]!=='常规',err=x.max_keypoint_error_percent_diagonal==null?'NA':x.max_keypoint_error_percent_diagonal.toFixed(3)+'%';$('meta').innerHTML=`<span class=\"tag ${{bad?'danger':'ok'}}\">${{x.source_batch}}</span><span class=tag>风险 ${{x.risk_tags.join(' / ')}}</span><span class=tag>漏检 ${{x.missing_classes.join(',')||'无'}}</span><span class=tag>无GT误检 ${{x.false_positive_classes.join(',')||'无'}}</span><span class=tag>低置信 ${{x.low_confidence_classes.join(',')||'无'}}</span><span class=tag>最大关键点误差 ${{err}}</span>`;const r=saved[x.source_image]||{{}};$('note').value=r.note||'';$('status').textContent='当前：'+(vt[r.verdict]||'未判断');document.querySelectorAll('[data-verdict]').forEach(b=>b.classList.toggle('active',b.dataset.verdict===(r.verdict||'')));$('jump').value=at+1;$('position').textContent=`${{at+1}}/${{ids.length}}　${{x.source_image}}`}}
 function move(n){{at=Math.max(0,Math.min(ids.length-1,at+n));render()}}function save(v){{const x=s[ids[at]];if(!x)return;saved[x.source_image]={{verdict:v,note:$('note').value,updated_at:new Date().toISOString()}};try{{localStorage.setItem(key,JSON.stringify(saved))}}catch(e){{}}if($('filter').value==='todo')refresh();else move(1)}}
@@ -310,7 +301,7 @@ def validate_html_runtime(html_text: str) -> None:
 
 
 def write_index(path: Path, records: Sequence[dict[str, Any]]) -> None:
-    fields = ["rank", "file_name", "source_batch", "patient_id", "source_image", "preview", "gt_classes", "matched_classes", "missing_classes", "false_positive_classes", "duplicate_predictions", "low_confidence_classes", "max_keypoint_error_percent_diagonal", "min_bbox_iou", "risk_tags", "risk_score"]
+    fields = ["rank", "file_name", "source_batch", "patient_id", "source_image", "preview", "gt_classes", "matched_classes", "missing_classes", "false_positive_classes", "low_confidence_classes", "max_keypoint_error_percent_diagonal", "min_bbox_iou", "risk_tags", "risk_score"]
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
@@ -326,7 +317,6 @@ def write_index(path: Path, records: Sequence[dict[str, Any]]) -> None:
                 "matched_classes": ";".join(row["class_name"] for row in record["matches"]),
                 "missing_classes": ";".join(record["missing_classes"]),
                 "false_positive_classes": ";".join(record["false_positive_classes"]),
-                "duplicate_predictions": json.dumps(record["duplicate_predictions"], ensure_ascii=False, sort_keys=True),
                 "low_confidence_classes": ";".join(record["low_confidence_classes"]),
                 "max_keypoint_error_percent_diagonal": "" if record["max_keypoint_error_percent_diagonal"] is None else f"{record['max_keypoint_error_percent_diagonal']:.6f}",
                 "min_bbox_iou": "" if record["min_bbox_iou"] is None else f"{record['min_bbox_iou']:.6f}",
@@ -435,8 +425,8 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
             ground_truth = parse_yolo_pose(label_path, width, height)
             result = model.predict(source=str(image_path), imgsz=args.imgsz, conf=args.confidence, iou=args.iou, max_det=args.max_det, device=args.device, verbose=False)[0]
             raw = tensor_rows(result)
-            selected, duplicates = select_predictions(raw)
-            comparison = compare_predictions(ground_truth, selected, duplicates, width, height, args.low_confidence)
+            selected = select_predictions(raw)
+            comparison = compare_predictions(ground_truth, selected, width, height, args.low_confidence)
             preview = f"previews/{index:03d}__{image_path.stem}.jpg"
             record = {
                 "file_name": image_path.name,
@@ -467,7 +457,6 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
             "risk_images": sum(row["risk_tags"] != ["常规"] for row in records),
             "missing_images": sum(bool(row["missing_classes"]) for row in records),
             "false_positive_images": sum(bool(row["false_positive_classes"]) for row in records),
-            "duplicate_images": sum(bool(row["duplicate_predictions"]) for row in records),
             "low_confidence_images": sum(bool(row["low_confidence_classes"]) for row in records),
             "keypoint_error_ge_1pct_images": sum((row["max_keypoint_error_percent_diagonal"] or 0) >= 1 for row in records),
             "model_sha256": model_hash,

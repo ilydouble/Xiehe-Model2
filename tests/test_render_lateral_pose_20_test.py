@@ -21,13 +21,13 @@ class LateralPose20ReviewTests(unittest.TestCase):
             self.assertEqual(parsed[0]["keypoints"][2], [700.0, 1200.0, 2.0])
 
     def test_select_predictions_keeps_highest_per_class(self):
-        selected, duplicates = renderer.select_predictions([
+        selected = renderer.select_predictions([
             {"class_id": 0, "score": 0.3},
             {"class_id": 0, "score": 0.8},
             {"class_id": 1, "score": 0.7},
         ])
         self.assertEqual(selected[0]["score"], 0.8)
-        self.assertEqual(duplicates, {"C2": 1})
+        self.assertEqual(len(selected), 2)
 
     def test_compare_predictions_reports_missing_false_positive_and_error(self):
         ground_truth = {
@@ -38,7 +38,7 @@ class LateralPose20ReviewTests(unittest.TestCase):
             0: {"class_id": 0, "score": 0.2, "bbox": [0, 0, 10, 10], "keypoints": [[3, 4, 2], [13, 4, 2], [13, 14, 2], [3, 14, 2]]},
             2: {"class_id": 2, "score": 0.8, "bbox": [40, 40, 50, 50], "keypoints": [[40, 40, 2]] * 4},
         }
-        report = renderer.compare_predictions(ground_truth, selected, {"T1": 1}, 60, 80)
+        report = renderer.compare_predictions(ground_truth, selected, 60, 80)
         self.assertEqual(report["missing_classes"], ["C7"])
         self.assertEqual(report["false_positive_classes"], ["T1"])
         self.assertEqual(report["low_confidence_classes"], ["C2"])
