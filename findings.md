@@ -300,3 +300,12 @@
 - 本机Ultralytics实际构建结果确认模型scale为`l`，参数量26,230,745，因此是YOLO11 Large Pose而不是小模型。
 - `yolo11l-pose.yaml`只负责网络结构，不包含或决定混合数据；训练脚本通过`lateral_pose_20_black_roi_mixed.yaml`选择796张原图+185张黑边ROI，共981个train视图。
 - 真实数据dry-run确认val 99张、test 100张仍只使用原图，患者级拆分检查通过；shell语法及6项训练入口测试均通过。
+
+## Session: 2026-09-09 最终20类权重本地测试与人工核验包
+
+### Requirements
+- 用户已把最终训练权重拷回本机，要求先在本地联合20类数据集的test集合上正式评估。
+- 第二步在已挂载的E盘生成可离线浏览的可视化包，供逐张人工核验。
+- 当前新权重候选为`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best/weights/best.pt`，修改时间为2026-09-09 09:22；仍需读取模型元数据确认类别与4关键点契约。
+- 目标test集预计为`datasets/yolo_lateral_reviewed_combined_20cls`中的100张原图；正式运行前以data.yaml和manifest复核。
+- 仓库已有未提交的`4-model_training_CFH/train_cfh_detection.sh`、`docs/lateral_dataset_merge_assessment.md`及未跟踪`analysis/`，本轮不得混入提交。

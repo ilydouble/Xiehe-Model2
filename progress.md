@@ -517,3 +517,13 @@
 - Python默认值、训练说明和测试已同步；shell语法检查、6项测试及真实数据`--best --dry-run`全部通过。
 - dry-run确认混合训练集为796张原图+185张黑边ROI，共981个训练视图；val 99张、test 100张仍只使用原图，患者级拆分验证通过。
 - 使用本机Ultralytics实例化模型确认scale为`l`、参数量26,230,745；`yolo11l-pose.yaml`只定义Large网络结构，混合数据由`lateral_pose_20_black_roi_mixed.yaml`决定。
+
+## Session: 2026-09-09 最终20类权重本地评估
+
+### Phase 56: 回传权重与测试集契约核对
+- **Status:** in_progress
+- **Started:** 2026-09-09
+- Actions taken:
+  - 确认E盘挂载点为`/Volumes/E`。
+  - 枚举本机权重，定位最新文件`3-model_training/runs/pose/yolo11l_lateral_20cls_scratch_best/weights/best.pt`（2026-09-09 09:22，约53 MB）。
+  - 识别本地目标数据集`datasets/yolo_lateral_reviewed_combined_20cls`及已有双模型测试可视化实现，下一步核验模型/数据契约并决定复用范围。
