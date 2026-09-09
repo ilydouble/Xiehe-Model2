@@ -535,3 +535,4 @@
 - **Status:** in_progress
 - Actions taken:
   - 固定在test split、imgsz 1280上计算全20类bbox与pose指标，输出到`analysis/lateral_20cls_test_eval_100_20260909`。
+  - 首次调用在数据加载前失败：Ultralytics按全局datasets_dir错误解析混合YAML相对path；确认没有进入推理，改用临时绝对路径YAML处理。
