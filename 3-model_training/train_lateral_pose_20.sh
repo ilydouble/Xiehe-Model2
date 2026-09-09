@@ -11,7 +11,7 @@ show_help() {
 人工筛选合并20类侧面脊柱 YOLO Pose
 
 类别: C2、C7、T1-T13、L1-L5（不含C3-C6）
-训练结束后默认只用test集的C2/C7计算最终重点指标。
+训练结束后先评估test集全部椎体，再补充C2/C7专项指标。
 
 用法:
     ./3-model_training/train_lateral_pose_20.sh --best [选项]
@@ -30,7 +30,7 @@ show_help() {
     --name <name>        实验名
     --data <path>        data.yaml路径
     --resume [path]      续训
-    --skip-final-test    不执行训练后的C2/C7 test评估
+    --skip-final-test    不执行训练后的全脊柱和C2/C7 test评估
     --dry-run            只做全量数据校验
 EOF
 }
@@ -91,5 +91,8 @@ ${DRY_RUN} && COMMAND+=(--dry-run)
 
 if ! ${DRY_RUN}; then
     echo "最佳权重: ${SCRIPT_DIR}/runs/pose/${NAME}/weights/best.pt"
-    ${SKIP_FINAL_TEST} || echo "C2/C7测试结果: ${SCRIPT_DIR}/runs/pose/${NAME}_test_C2_C7"
+    if ! ${SKIP_FINAL_TEST}; then
+        echo "全脊柱测试结果: ${SCRIPT_DIR}/runs/pose/${NAME}_test_all_spine"
+        echo "C2/C7专项测试结果: ${SCRIPT_DIR}/runs/pose/${NAME}_test_C2_C7"
+    fi
 fi

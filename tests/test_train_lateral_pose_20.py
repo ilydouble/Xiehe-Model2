@@ -72,6 +72,18 @@ class TrainingScriptTests(unittest.TestCase):
         self.assertEqual(args.batch, 4)
         self.assertEqual(args.name, "yolo11l_lateral_20cls_scratch_best")
 
+    def test_full_spine_test_is_primary_and_focus_is_auxiliary(self):
+        args = Namespace(
+            data=Path("data.yaml"), imgsz=1280, batch=4, device="0", workers=8,
+            project=Path("runs"), name="experiment",
+        )
+        full = trainer.build_test_args(args, focused=False)
+        focused = trainer.build_test_args(args, focused=True)
+        self.assertNotIn("classes", full)
+        self.assertEqual(full["name"], "experiment_test_all_spine")
+        self.assertEqual(focused["classes"], [0, 1])
+        self.assertEqual(focused["name"], "experiment_test_C2_C7")
+
     def test_shell_best_is_single_scratch_mixed_preset(self):
         shell = (SCRIPT.parent / "train_lateral_pose_20.sh").read_text(encoding="utf-8")
         self.assertIn('--best) MODEL="yolo11l-pose.yaml"; EPOCHS=300; IMGSZ=1280; BATCH=4', shell)
