@@ -497,10 +497,15 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
         report["removed_apple_double_files"] = removed_apple_double
         (staging / "build_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         write_file_manifest(staging)
+        remove_apple_double(staging)
         audit = audit_package(staging, len(records))
         if audit["status"] != "passed":
             raise RuntimeError(f"Package audit failed: {audit['errors']}")
         (staging / "audit_report.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        remove_apple_double(staging)
+        audit = audit_package(staging, len(records))
+        if audit["status"] != "passed":
+            raise RuntimeError(f"Final package audit failed: {audit['errors']}")
         os.rename(staging, args.output)
         return {"output": str(args.output), "report": report, "audit": audit}
     except Exception:
